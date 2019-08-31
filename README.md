@@ -3,10 +3,12 @@
 ----
 
 The program is designed to inject shellcode in a target process.
+
 Currently the program accepts shellcode in 3 formats 
-    1) base64
-    2) hex
-    3) C
+	
+	1) base64
+	2) hex
+	3) C
 
 ### Command Line Usage
 
