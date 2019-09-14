@@ -264,7 +264,7 @@ namespace ProcessInjection
                     Console.WriteLine("[+] Some arguments are missing. Please refer the help section for more details.");
                     help();
                 }
-                else if (arguments.Count == 3)
+                else if (arguments.Count >= 3)
                 {
                     int procid = Convert.ToInt32(arguments["/pid"]);
                     Process process = Process.GetProcessById(procid);
