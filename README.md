@@ -47,4 +47,6 @@ Currently the program accepts shellcode in 3 formats
 [https://3xpl01tc0d3r.blogspot.com/2019/09/process-injection-part-ii.html](https://3xpl01tc0d3r.blogspot.com/2019/09/process-injection-part-ii.html)
 
 
-### Blog Post
+### Contribution Credit
+
+[Renos](https://twitter.com/r3n_hat)
