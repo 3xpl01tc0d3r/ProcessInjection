@@ -50,3 +50,5 @@ Currently the program accepts shellcode in 3 formats
 ### Contribution Credit
 
 [Renos](https://twitter.com/r3n_hat)
+
+Credits also goes to Aaron Bray (https://github.com/ambray) for Process Hollowing code
