@@ -545,7 +545,6 @@ namespace ProcessInjection
 
             ~ProcHollowing()
            {
-                Console.WriteLine($"[+] Unmap view section.");
                 if (localmap_ != (IntPtr)0)
                    ZwUnmapViewOfSection(section_, localmap_);
             }
