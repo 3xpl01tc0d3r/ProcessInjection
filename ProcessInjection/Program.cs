@@ -710,10 +710,10 @@ namespace ProcessInjection
                     bool ProcCreate = CreateProcess(childPath, null, ref ps, ref ts, true, CreateSuspended | EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW, IntPtr.Zero, null, ref siEx, out pInfo);
                     if (!ProcCreate)
                     {
-                        Console.WriteLine($"[!] Proccess failed to execute!");
+                        Console.WriteLine($"[+] Proccess failed to execute!");
 
                     }
-                    Console.WriteLine($"[!] New process with ID: {pInfo.dwProcessId} created in a suspended stated under the defined parent process.");
+                    Console.WriteLine($"[+] New process with ID: {pInfo.dwProcessId} created in a suspended stated under the defined parent process.");
                 }
                 catch (Exception ex)
                 {
