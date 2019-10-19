@@ -3,15 +3,15 @@
 ----
 
 The program is designed to perform process injection.
-Currently the tool supports 3 process injection techniques.
+Currently the tool supports 4 process injection techniques.
 
 	1) Vanila Process Injection
 	2) DLL Injection
 	3) Process Hollowing
 	4) Parent PID Spoofing
 
-Vanila Process Injection, Process Hollowing and Parent PID Spoofing
-Currently the program accepts shellcode in 3 formats 
+Vanila Process Injection, Process Hollowing and Parent PID Spoofing.
+Currently the program accepts shellcode in 3 formats.
 
 	1) base64
 	2) hex
