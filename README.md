@@ -15,9 +15,11 @@ Currently the tool accepts shellcode in 3 formats.
 	1) base64
 	2) hex
 	3) C
-	
+
 Currently the tool support 1 evade technique.
-    1) Parent PID Spoofing
+
+	1) Parent PID Spoofing
+	
 
 ### Command Line Usage
 
