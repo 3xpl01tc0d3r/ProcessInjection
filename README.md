@@ -82,8 +82,6 @@ Supports 1 detection evading technique.
 
 [https://3xpl01tc0d3r.blogspot.com/2019/10/process-injection-part-iii.html](https://3xpl01tc0d3r.blogspot.com/2019/10/process-injection-part-iii.html)
 
-[https://3xpl01tc0d3r.blogspot.com/2019/10/process-injection-part-iii.html](https://3xpl01tc0d3r.blogspot.com/2019/10/process-injection-part-iii.html)
-
 [https://medium.com/@r3n_hat/parent-pid-spoofing-b0b17317168e](https://medium.com/@r3n_hat/parent-pid-spoofing-b0b17317168e)
 
 [https://3xpl01tc0d3r.blogspot.com/2019/12/process-injection-part-v.html](https://3xpl01tc0d3r.blogspot.com/2019/12/process-injection-part-v.html)
