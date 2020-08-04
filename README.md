@@ -102,6 +102,7 @@ Supports 1 detection evading technique.
 ### Contribution Credit
 
 [Renos](https://twitter.com/r3n_hat)
-[The Wover](https://twitter.com/TheRealWover) & [b33f](https://twitter.com/FuzzySec) for Dynamic Invoke(https://thewover.github.io/Dynamic-Invoke/)
+
+[The Wover](https://twitter.com/TheRealWover) & [b33f](https://twitter.com/FuzzySec) for Dynamic Invoke - (https://thewover.github.io/Dynamic-Invoke/)
 
 Credits also goes to [Aaron Bray](https://github.com/ambray) & [Rasta Mouse](https://twitter.com/_rastamouse) for Process Hollowing code
