@@ -6,10 +6,11 @@ The program is designed to perform process injection.
 Currently the tool supports 4 process injection techniques.
 
 ```
-1) Vanila Process Injection
+1) Vanilla Process Injection
 2) DLL Injection
 3) Process Hollowing
 4) APC Queue
+5) Dynamic Invoke - Vanilla Process Injection
 ```
 
 The tool accepts shellcode in 4 formats.
@@ -75,4 +76,6 @@ Usage           Description
 
 [Renos](https://twitter.com/r3n_hat)
 
-Credits also goes to [Aaron Bray](https://github.com/ambray) & [Rasta Mouse](https://twitter.com/_rastamouse) for Process Hollowing code
+Credits also goes to :
+[Aaron Bray](https://github.com/ambray) & [Rasta Mouse](https://twitter.com/_rastamouse) for Process Hollowing code
+[The Wover](https://twitter.com/TheRealWover) & [b33f](https://twitter.com/FuzzySec) for Dynamic Invoke - (https://thewover.github.io/Dynamic-Invoke/)
