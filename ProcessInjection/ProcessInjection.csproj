@@ -70,9 +70,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DynamicInvoke.cs" />
+    <Compile Include="DInvoke\CreateRemoteThread.cs" />
+    <Compile Include="DInvoke\DynamicInvoke.cs" />
+    <Compile Include="Native\Constants.cs" />
+    <Compile Include="Native\Enums.cs" />
+    <Compile Include="PInvoke\PPIDSpoofing.cs" />
+    <Compile Include="Native\Structs.cs" />
+    <Compile Include="Native\Win32API.cs" />
+    <Compile Include="PInvoke\APCQueue.cs" />
+    <Compile Include="PInvoke\CreateRemoteThread.cs" />
+    <Compile Include="PInvoke\DLLInjection.cs" />
+    <Compile Include="PInvoke\ProcessHollowing.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\Crypto.cs" />
+    <Compile Include="Utils\Utils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
