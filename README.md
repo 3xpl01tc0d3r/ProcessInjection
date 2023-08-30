@@ -55,6 +55,9 @@ Usage           Description
                 2 = DLL Injection
                 3 = Process Hollowing
                 4 = APC Queue Injection
+/m              Specify the method to be used
+                p = P/Invoke (Default)
+                d = D/Invoke
 /f              Specify the format of the shellcode.
                 base64
                 hex
