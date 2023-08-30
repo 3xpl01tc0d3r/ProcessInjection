@@ -3,14 +3,13 @@
 ----
 
 The program is designed to perform process injection.
-Currently the tool supports 5 process injection techniques.
+Currently the tool supports 4 process injection techniques.
 
 ```
 1) Vanilla Process Injection
 2) DLL Injection
 3) Process Hollowing
 4) APC Queue
-5) Dynamic Invoke - Vanilla Process Injection
 ```
 
 The tool accepts shellcode in 4 formats.
@@ -20,6 +19,13 @@ The tool accepts shellcode in 4 formats.
 2) hex
 3) c
 4) raw
+```
+
+The tool supports 2 methods to perform process injection.
+
+```
+1) P/Invoke
+2) D/Invoke
 ```
 
 Supports 3 detection evading techniques.
