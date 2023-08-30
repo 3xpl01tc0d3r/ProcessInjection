@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static ProcessInjection.Native.Win32API;
-using static ProcessInjection.Native.Enums;
 using static ProcessInjection.Native.Structs;
 using static ProcessInjection.Native.Constants;
 using static ProcessInjection.Utils.Utils;
@@ -232,11 +228,11 @@ namespace ProcessInjection.PInvoke
             byte[] addrBuf = new byte[IntPtr.Size];
             if (IntPtr.Size == 4)
             {
-                readLoc = (IntPtr)((Int32)basicInfo.PebAddress + 8);
+                readLoc = (IntPtr)((Int32)basicInfo.PebBaseAddress + 8);
             }
             else
             {
-                readLoc = (IntPtr)((Int64)basicInfo.PebAddress + 16);
+                readLoc = (IntPtr)((Int64)basicInfo.PebBaseAddress + 16);
             }
 
             IntPtr nRead = IntPtr.Zero;
@@ -317,7 +313,7 @@ namespace ProcessInjection.PInvoke
 
         
 
-        public void PPIDPProcHollow(string binary, byte[] shellcode, int parentpid)
+        public void PPIDProcHollow(string binary, byte[] shellcode, int parentpid)
         {
             PPIDSpoofing Parent = new PPIDSpoofing();
             PROCESS_INFORMATION pinf = Parent.ParentSpoofing(parentpid, binary);

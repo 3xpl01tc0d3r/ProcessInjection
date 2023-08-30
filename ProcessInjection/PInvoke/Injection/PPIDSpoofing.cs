@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using static ProcessInjection.Native.Enums;
 using static ProcessInjection.Native.Structs;
 using static ProcessInjection.Native.Constants;
@@ -82,7 +78,11 @@ namespace ProcessInjection.Native
                     PrintError($"[-] Proccess failed to execute!");
 
                 }
-                PrintInfo($"[!] New process with ID: {pInfo.dwProcessId} created in a suspended state under the defined parent process.");
+                else
+                {
+                    PrintInfo($"[!] New process with ID: {pInfo.dwProcessId} created in a suspended state under the defined parent process.");
+                }
+                
             }
             catch (Exception ex)
             {

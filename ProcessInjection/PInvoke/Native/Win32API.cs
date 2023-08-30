@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using static ProcessInjection.Native.Enums;
 using static ProcessInjection.Native.Structs;
 
@@ -30,7 +26,7 @@ namespace ProcessInjection.Native
         public static extern bool CloseHandle(IntPtr hObject);
 
         #region DLL Injection
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport("kernel32", SetLastError = true)]
         public static extern IntPtr GetModuleHandleA(string lpModuleName);
 
         [DllImport("kernel32", SetLastError = true)]

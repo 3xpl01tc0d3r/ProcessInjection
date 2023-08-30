@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ProcessInjection.Utils
 {
-    public class Utils
+    public static class Utils
     {
         public static byte[] StringToByteArray(string hex)
         {

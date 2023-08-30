@@ -8,11 +8,26 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ProcessInjection</RootNamespace>
     <AssemblyName>ProcessInjection</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -70,17 +85,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DInvoke\CreateRemoteThread.cs" />
-    <Compile Include="DInvoke\DynamicInvoke.cs" />
-    <Compile Include="Native\Constants.cs" />
-    <Compile Include="Native\Enums.cs" />
-    <Compile Include="PInvoke\PPIDSpoofing.cs" />
-    <Compile Include="Native\Structs.cs" />
-    <Compile Include="Native\Win32API.cs" />
-    <Compile Include="PInvoke\APCQueue.cs" />
-    <Compile Include="PInvoke\CreateRemoteThread.cs" />
-    <Compile Include="PInvoke\DLLInjection.cs" />
-    <Compile Include="PInvoke\ProcessHollowing.cs" />
+    <Compile Include="DInvoke\Injection\APCQueue.cs" />
+    <Compile Include="DInvoke\Injection\CreateRemoteThread.cs" />
+    <Compile Include="DInvoke\Injection\DLLInjection.cs" />
+    <Compile Include="DInvoke\Injection\DynamicPPIDSpoofing.cs" />
+    <Compile Include="DInvoke\Injection\DynamicProcessHollowing.cs" />
+    <Compile Include="DInvoke\Native\Constants.cs" />
+    <Compile Include="DInvoke\Native\Delegates.cs" />
+    <Compile Include="DInvoke\Native\DynamicInvoke.cs" />
+    <Compile Include="DInvoke\Native\Enum.cs" />
+    <Compile Include="DInvoke\Native\Native.cs" />
+    <Compile Include="DInvoke\Native\PE.cs" />
+    <Compile Include="DInvoke\Native\Structs.cs" />
+    <Compile Include="DInvoke\Native\Utils.cs" />
+    <Compile Include="PInvoke\Native\Constants.cs" />
+    <Compile Include="PInvoke\Native\Enums.cs" />
+    <Compile Include="PInvoke\Injection\PPIDSpoofing.cs" />
+    <Compile Include="PInvoke\Native\Structs.cs" />
+    <Compile Include="PInvoke\Native\Win32API.cs" />
+    <Compile Include="PInvoke\Injection\APCQueue.cs" />
+    <Compile Include="PInvoke\Injection\CreateRemoteThread.cs" />
+    <Compile Include="PInvoke\Injection\DLLInjection.cs" />
+    <Compile Include="PInvoke\Injection\ProcessHollowing.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\Crypto.cs" />
@@ -88,6 +114,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

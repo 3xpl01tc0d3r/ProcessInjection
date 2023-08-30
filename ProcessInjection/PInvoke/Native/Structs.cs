@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ProcessInjection.Native
 {
-    public class Structs
+    public static class Structs
     {
         #region Parent PID Spoofing Structs and flags
 
@@ -41,36 +37,38 @@ namespace ProcessInjection.Native
         [StructLayout(LayoutKind.Sequential)]
         public struct PROCESS_BASIC_INFORMATION
         {
-            public IntPtr Reserved1;
-            public IntPtr PebAddress;
-            public IntPtr Reserved2;
-            public IntPtr Reserved3;
-            public IntPtr UniquePid;
-            public IntPtr MoreReserved;
+            public IntPtr ExitStatus;
+            public IntPtr PebBaseAddress;
+            public IntPtr AffinityMask;
+            public IntPtr BasePriority;
+            public UIntPtr UniqueProcessId;
+            public int InheritedFromUniqueProcessId;
+
+            public int Size => Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION));
         }
 
         [StructLayout(LayoutKind.Sequential)]
         //internal struct STARTUPINFO
         public struct STARTUPINFO
         {
-            uint cb;
-            IntPtr lpReserved;
-            IntPtr lpDesktop;
-            IntPtr lpTitle;
-            uint dwX;
-            uint dwY;
-            uint dwXSize;
-            uint dwYSize;
-            uint dwXCountChars;
-            uint dwYCountChars;
-            uint dwFillAttributes;
+            public uint cb;
+            public IntPtr lpReserved;
+            public IntPtr lpDesktop;
+            public IntPtr lpTitle;
+            public uint dwX;
+            public uint dwY;
+            public uint dwXSize;
+            public uint dwYSize;
+            public uint dwXCountChars;
+            public uint dwYCountChars;
+            public uint dwFillAttributes;
             public uint dwFlags;
             public ushort wShowWindow;
-            ushort cbReserved;
-            IntPtr lpReserved2;
-            IntPtr hStdInput;
-            IntPtr hStdOutput;
-            IntPtr hStdErr;
+            public ushort cbReserved;
+            public IntPtr lpReserved2;
+            public IntPtr hStdInput;
+            public IntPtr hStdOutput;
+            public IntPtr hStdErr;
         }
 
         [StructLayout(LayoutKind.Sequential)]
