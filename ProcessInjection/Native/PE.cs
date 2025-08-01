@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 
 
-namespace ProcessInjection.DInvoke.Native
+namespace ProcessInjection.Native
 {
     public static class PE
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using static ProcessInjection.Native.Enums;
+using static ProcessInjection.Native.Enum;
 using static ProcessInjection.Native.Structs;
 using static ProcessInjection.Native.Constants;
 using static ProcessInjection.Native.Win32API;

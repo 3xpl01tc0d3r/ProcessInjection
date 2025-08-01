@@ -3,12 +3,15 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using static ProcessInjection.Native.Enum;
+using static ProcessInjection.Native.Delegates;
+using static ProcessInjection.Native.Structs;
 
-namespace ProcessInjection.DInvoke.Native
+namespace ProcessInjection.DInvoke
 {
     public static class Native
     {
-        public static Enum.NTSTATUS NtCreateThreadEx(ref IntPtr threadHandle, Enum.ACCESS_MASK desiredAccess, IntPtr objectAttributes, IntPtr processHandle, IntPtr startAddress, IntPtr parameter, bool createSuspended, int stackZeroBits, int sizeOfStack, int maximumStackSize, IntPtr attributeList)
+        public static NTSTATUS NtCreateThreadEx(ref IntPtr threadHandle, ACCESS_MASK desiredAccess, IntPtr objectAttributes, IntPtr processHandle, IntPtr startAddress, IntPtr parameter, bool createSuspended, int stackZeroBits, int sizeOfStack, int maximumStackSize, IntPtr attributeList)
         {
             object[] funcargs =
             {
@@ -16,23 +19,23 @@ namespace ProcessInjection.DInvoke.Native
             sizeOfStack, maximumStackSize, attributeList
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtCreateThreadEx",
-                typeof(Delegates.NtCreateThreadEx), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtCreateThreadEx",
+                typeof(NtCreateThreadEx), ref funcargs);
 
             threadHandle = (IntPtr)funcargs[0];
             return retValue;
         }
 
-        public static Enum.NTSTATUS NtCreateSection(ref IntPtr sectionHandle, uint desiredAccess, IntPtr objectAttributes, ref ulong maximumSize, uint sectionPageProtection, uint allocationAttributes, IntPtr fileHandle)
+        public static NTSTATUS NtCreateSection(ref IntPtr sectionHandle, uint desiredAccess, IntPtr objectAttributes, ref ulong maximumSize, uint sectionPageProtection, uint allocationAttributes, IntPtr fileHandle)
         {
             object[] funcargs =
             {
             sectionHandle, desiredAccess, objectAttributes, maximumSize, sectionPageProtection, allocationAttributes, fileHandle
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtCreateSection", typeof(Delegates.NtCreateSection), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtCreateSection", typeof(NtCreateSection), ref funcargs);
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new InvalidOperationException("Unable to create section, " + retValue);
 
             sectionHandle = (IntPtr)funcargs[0];
@@ -41,19 +44,19 @@ namespace ProcessInjection.DInvoke.Native
             return retValue;
         }
 
-        public static Enum.NTSTATUS NtUnmapViewOfSection(IntPtr hProc, IntPtr baseAddr)
+        public static NTSTATUS NtUnmapViewOfSection(IntPtr hProc, IntPtr baseAddr)
         {
             object[] funcargs =
             {
             hProc, baseAddr
         };
 
-            var result = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtUnmapViewOfSection", typeof(Delegates.NtUnmapViewOfSection), ref funcargs);
+            var result = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtUnmapViewOfSection", typeof(NtUnmapViewOfSection), ref funcargs);
 
             return result;
         }
 
-        public static Enum.NTSTATUS NtMapViewOfSection(IntPtr sectionHandle, IntPtr processHandle, ref IntPtr baseAddress, IntPtr zeroBits, IntPtr commitSize, IntPtr sectionOffset, ref ulong viewSize, uint inheritDisposition, uint allocationType, uint win32Protect)
+        public static NTSTATUS NtMapViewOfSection(IntPtr sectionHandle, IntPtr processHandle, ref IntPtr baseAddress, IntPtr zeroBits, IntPtr commitSize, IntPtr sectionOffset, ref ulong viewSize, uint inheritDisposition, uint allocationType, uint win32Protect)
         {
             object[] funcargs =
             {
@@ -61,9 +64,9 @@ namespace ProcessInjection.DInvoke.Native
             win32Protect
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtMapViewOfSection", typeof(Delegates.NtMapViewOfSection), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtMapViewOfSection", typeof(NtMapViewOfSection), ref funcargs);
 
-            if (retValue != Enum.NTSTATUS.Success && retValue != Enum.NTSTATUS.ImageNotAtBase)
+            if (retValue != NTSTATUS.Success && retValue != NTSTATUS.ImageNotAtBase)
                 throw new InvalidOperationException("Unable to map view of section, " + retValue);
 
             baseAddress = (IntPtr)funcargs[2];
@@ -72,26 +75,26 @@ namespace ProcessInjection.DInvoke.Native
             return retValue;
         }
 
-        public static void RtlInitUnicodeString(ref Structs.UNICODE_STRING destinationString, [MarshalAs(UnmanagedType.LPWStr)] string sourceString)
+        public static void RtlInitUnicodeString(ref UNICODE_STRING destinationString, [MarshalAs(UnmanagedType.LPWStr)] string sourceString)
         {
             object[] funcargs =
             {
             destinationString, sourceString
         };
 
-            DynamicInvoke.DynamicApiInvoke("ntdll.dll", "RtlInitUnicodeString", typeof(Delegates.RtlInitUnicodeString), ref funcargs);
+            DynamicInvoke.DynamicApiInvoke("ntdll.dll", "RtlInitUnicodeString", typeof(RtlInitUnicodeString), ref funcargs);
 
-            destinationString = (Structs.UNICODE_STRING)funcargs[0];
+            destinationString = (UNICODE_STRING)funcargs[0];
         }
 
-        public static Enum.NTSTATUS LdrLoadDll(IntPtr pathToFile, uint dwFlags, ref Structs.UNICODE_STRING moduleFileName, ref IntPtr moduleHandle)
+        public static NTSTATUS LdrLoadDll(IntPtr pathToFile, uint dwFlags, ref UNICODE_STRING moduleFileName, ref IntPtr moduleHandle)
         {
             object[] funcargs =
             {
             pathToFile, dwFlags, moduleFileName, moduleHandle
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "LdrLoadDll", typeof(Delegates.LdrLoadDll), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "LdrLoadDll", typeof(LdrLoadDll), ref funcargs);
 
             moduleHandle = (IntPtr)funcargs[3];
 
@@ -105,24 +108,24 @@ namespace ProcessInjection.DInvoke.Native
             destination, length
         };
 
-            DynamicInvoke.DynamicApiInvoke("ntdll.dll", "RtlZeroMemory", typeof(Delegates.RtlZeroMemory), ref funcargs);
+            DynamicInvoke.DynamicApiInvoke("ntdll.dll", "RtlZeroMemory", typeof(RtlZeroMemory), ref funcargs);
         }
 
-        public static Enum.NTSTATUS NtQueryInformationProcess(IntPtr hProcess, Enum.PROCESSINFOCLASS processInfoClass, out IntPtr pProcInfo)
+        public static NTSTATUS NtQueryInformationProcess(IntPtr hProcess, PROCESSINFOCLASS processInfoClass, out IntPtr pProcInfo)
         {
             int processInformationLength;
             uint retLen = 0;
 
             switch (processInfoClass)
             {
-                case Enum.PROCESSINFOCLASS.ProcessWow64Information:
+                case PROCESSINFOCLASS.ProcessWow64Information:
                     pProcInfo = Marshal.AllocHGlobal(IntPtr.Size);
                     RtlZeroMemory(pProcInfo, IntPtr.Size);
                     processInformationLength = IntPtr.Size;
                     break;
 
-                case Enum.PROCESSINFOCLASS.ProcessBasicInformation:
-                    var pbi = new Structs.PROCESS_BASIC_INFORMATION();
+                case PROCESSINFOCLASS.ProcessBasicInformation:
+                    var pbi = new PROCESS_BASIC_INFORMATION();
                     pProcInfo = Marshal.AllocHGlobal(Marshal.SizeOf(pbi));
                     RtlZeroMemory(pProcInfo, Marshal.SizeOf(pbi));
                     Marshal.StructureToPtr(pbi, pProcInfo, true);
@@ -138,9 +141,9 @@ namespace ProcessInjection.DInvoke.Native
             hProcess, processInfoClass, pProcInfo, processInformationLength, retLen
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtQueryInformationProcess", typeof(Delegates.NtQueryInformationProcess), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtQueryInformationProcess", typeof(NtQueryInformationProcess), ref funcargs);
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new UnauthorizedAccessException("Access is denied.");
 
             pProcInfo = (IntPtr)funcargs[2];
@@ -150,22 +153,22 @@ namespace ProcessInjection.DInvoke.Native
 
         public static bool NtQueryInformationProcessWow64Information(IntPtr hProcess)
         {
-            var retValue = NtQueryInformationProcess(hProcess, Enum.PROCESSINFOCLASS.ProcessWow64Information, out var pProcInfo);
+            var retValue = NtQueryInformationProcess(hProcess, PROCESSINFOCLASS.ProcessWow64Information, out var pProcInfo);
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new UnauthorizedAccessException("Access is denied.");
 
             return Marshal.ReadIntPtr(pProcInfo) != IntPtr.Zero;
         }
 
-        public static Structs.PROCESS_BASIC_INFORMATION NtQueryInformationProcessBasicInformation(IntPtr hProcess)
+        public static PROCESS_BASIC_INFORMATION NtQueryInformationProcessBasicInformation(IntPtr hProcess)
         {
-            var retValue = NtQueryInformationProcess(hProcess, Enum.PROCESSINFOCLASS.ProcessBasicInformation, out var pProcInfo);
+            var retValue = NtQueryInformationProcess(hProcess, PROCESSINFOCLASS.ProcessBasicInformation, out var pProcInfo);
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new UnauthorizedAccessException("Access is denied.");
 
-            return (Structs.PROCESS_BASIC_INFORMATION)Marshal.PtrToStructure(pProcInfo, typeof(Structs.PROCESS_BASIC_INFORMATION));
+            return (PROCESS_BASIC_INFORMATION)Marshal.PtrToStructure(pProcInfo, typeof(PROCESS_BASIC_INFORMATION));
         }
 
         public static IntPtr NtAllocateVirtualMemory(IntPtr processHandle, ref IntPtr baseAddress, IntPtr zeroBits, ref IntPtr regionSize, uint allocationType, uint protect)
@@ -175,31 +178,31 @@ namespace ProcessInjection.DInvoke.Native
             processHandle, baseAddress, zeroBits, regionSize, allocationType, protect
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtAllocateVirtualMemory", typeof(Delegates.NtAllocateVirtualMemory), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtAllocateVirtualMemory", typeof(NtAllocateVirtualMemory), ref funcargs);
 
             switch (retValue)
             {
-                case Enum.NTSTATUS.AccessDenied:
+                case NTSTATUS.AccessDenied:
                     throw new UnauthorizedAccessException("Access is denied.");
-                case Enum.NTSTATUS.AlreadyCommitted:
+                case NTSTATUS.AlreadyCommitted:
                     throw new InvalidOperationException("The specified address range is already committed.");
-                case Enum.NTSTATUS.CommitmentLimit:
+                case NTSTATUS.CommitmentLimit:
                     throw new InvalidOperationException("Your system is low on virtual memory.");
-                case Enum.NTSTATUS.ConflictingAddresses:
+                case NTSTATUS.ConflictingAddresses:
                     throw new InvalidOperationException("The specified address range conflicts with the address space.");
-                case Enum.NTSTATUS.InsufficientResources:
+                case NTSTATUS.InsufficientResources:
                     throw new InvalidOperationException("Insufficient system resources exist to complete the API call.");
-                case Enum.NTSTATUS.InvalidHandle:
+                case NTSTATUS.InvalidHandle:
                     throw new InvalidOperationException("An invalid HANDLE was specified.");
-                case Enum.NTSTATUS.InvalidPageProtection:
+                case NTSTATUS.InvalidPageProtection:
                     throw new InvalidOperationException("The specified page protection was not valid.");
-                case Enum.NTSTATUS.NoMemory:
+                case NTSTATUS.NoMemory:
                     throw new InvalidOperationException("Not enough virtual memory or paging file quota is available to complete the specified operation.");
-                case Enum.NTSTATUS.ObjectTypeMismatch:
+                case NTSTATUS.ObjectTypeMismatch:
                     throw new InvalidOperationException("There is a mismatch between the type of object that is required by the requested operation and the type of object that is specified in the request.");
             }
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new InvalidOperationException("An attempt was made to duplicate an object handle into or out of an exiting process.");
 
             baseAddress = (IntPtr)funcargs[1];
@@ -213,17 +216,17 @@ namespace ProcessInjection.DInvoke.Native
             processHandle, baseAddress, regionSize, freeType
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtFreeVirtualMemory", typeof(Delegates.NtFreeVirtualMemory), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtFreeVirtualMemory", typeof(NtFreeVirtualMemory), ref funcargs);
 
             switch (retValue)
             {
-                case Enum.NTSTATUS.AccessDenied:
+                case NTSTATUS.AccessDenied:
                     throw new UnauthorizedAccessException("Access is denied.");
-                case Enum.NTSTATUS.InvalidHandle:
+                case NTSTATUS.InvalidHandle:
                     throw new InvalidOperationException("An invalid HANDLE was specified.");
             }
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new InvalidOperationException("There is a mismatch between the type of object that is required by the requested operation and the type of object that is specified in the request.");
         }
 
@@ -235,9 +238,9 @@ namespace ProcessInjection.DInvoke.Native
             processHandle, baseAddress, regionSize, newProtect, oldProtect
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtProtectVirtualMemory", typeof(Delegates.NtProtectVirtualMemory), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtProtectVirtualMemory", typeof(NtProtectVirtualMemory), ref funcargs);
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new InvalidOperationException("Failed to change memory protection, " + retValue);
 
             oldProtect = (uint)funcargs[4];
@@ -252,9 +255,9 @@ namespace ProcessInjection.DInvoke.Native
             processHandle, baseAddress, buffer, bufferLength, bytesWritten
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtWriteVirtualMemory", typeof(Delegates.NtWriteVirtualMemory), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "NtWriteVirtualMemory", typeof(NtWriteVirtualMemory), ref funcargs);
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new InvalidOperationException("Failed to write memory, " + retValue);
 
             bytesWritten = (uint)funcargs[4];
@@ -268,40 +271,40 @@ namespace ProcessInjection.DInvoke.Native
             hModule, functionName, ordinal, functionAddress
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "LdrGetProcedureAddress", typeof(Delegates.LdrGetProcedureAddress), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "LdrGetProcedureAddress", typeof(LdrGetProcedureAddress), ref funcargs);
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new InvalidOperationException("Failed get procedure address, " + retValue);
 
             functionAddress = (IntPtr)funcargs[3];
             return functionAddress;
         }
 
-        public static void RtlGetVersion(ref Structs.OSVERSIONINFOEX versionInformation)
+        public static void RtlGetVersion(ref OSVERSIONINFOEX versionInformation)
         {
             object[] funcargs =
             {
             versionInformation
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "RtlGetVersion", typeof(Delegates.RtlGetVersion), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke("ntdll.dll", "RtlGetVersion", typeof(RtlGetVersion), ref funcargs);
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new InvalidOperationException("Failed get procedure address, " + retValue);
 
-            versionInformation = (Structs.OSVERSIONINFOEX)funcargs[0];
+            versionInformation = (OSVERSIONINFOEX)funcargs[0];
         }
 
-        public static IntPtr NtOpenFile(ref IntPtr fileHandle, Enum.FileAccessFlags desiredAccess, ref Structs.OBJECT_ATTRIBUTES objectAttributes, ref Structs.IO_STATUS_BLOCK ioStatusBlock, Enum.FileShareFlags shareAccess, Enum.FileOpenFlags openOptions)
+        public static IntPtr NtOpenFile(ref IntPtr fileHandle, FileAccessFlags desiredAccess, ref OBJECT_ATTRIBUTES objectAttributes, ref IO_STATUS_BLOCK ioStatusBlock, FileShareFlags shareAccess, FileOpenFlags openOptions)
         {
             object[] funcargs =
             {
             fileHandle, desiredAccess, objectAttributes, ioStatusBlock, shareAccess, openOptions
         };
 
-            var retValue = (Enum.NTSTATUS)DynamicInvoke.DynamicApiInvoke(@"ntdll.dll", @"NtOpenFile", typeof(Delegates.NtOpenFile), ref funcargs);
+            var retValue = (NTSTATUS)DynamicInvoke.DynamicApiInvoke(@"ntdll.dll", @"NtOpenFile", typeof(NtOpenFile), ref funcargs);
 
-            if (retValue != Enum.NTSTATUS.Success)
+            if (retValue != NTSTATUS.Success)
                 throw new InvalidOperationException("Failed to open file, " + retValue);
 
             fileHandle = (IntPtr)funcargs[0];

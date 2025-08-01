@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using static ProcessInjection.Native.Structs;
 
-namespace ProcessInjection.DInvoke.Native
+namespace ProcessInjection.Native
 {
     public static class Delegates
     {
@@ -15,9 +16,9 @@ namespace ProcessInjection.DInvoke.Native
             IntPtr startAddress,
             IntPtr parameter,
             bool createSuspended,
-            int stackZeroBits,
-            int sizeOfStack,
-            int maximumStackSize,
+            uint stackZeroBits,
+            uint sizeOfStack,
+            uint maximumStackSize,
             IntPtr attributeList);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -99,10 +100,11 @@ namespace ProcessInjection.DInvoke.Native
             ref uint oldProtect);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate uint NtWriteVirtualMemory(
+        public delegate Enum.NTSTATUS NtWriteVirtualMemory(
             IntPtr processHandle,
             IntPtr baseAddress,
-            IntPtr buffer,
+            //IntPtr buffer,
+            byte[] buffer,
             uint bufferLength,
             ref uint bytesWritten);
 
@@ -332,8 +334,8 @@ namespace ProcessInjection.DInvoke.Native
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate bool SetHandleInformation(
             IntPtr hObject, 
-            Structs.HANDLE_FLAGS dwMask, 
-            Structs.HANDLE_FLAGS dwFlags);
+            Enum.HANDLE_FLAGS dwMask,
+            Enum.HANDLE_FLAGS dwFlags);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -361,6 +363,44 @@ namespace ProcessInjection.DInvoke.Native
             IntPtr dwData);
 
         #endregion APC Injection
+
+
+        #region Direct Syscall
+        //[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        //public delegate Enum.NTSTATUS NtAllocateVirtualMemory(
+        //        IntPtr ProcessHandle,
+        //        ref IntPtr BaseAddress,
+        //        IntPtr ZeroBits,
+        //        ref UIntPtr RegionSize,
+        //        ulong AllocationType,
+        //        ulong Protect);
+        //[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        //public delegate Enum.NTSTATUS NtCreateThreadEx(
+        //    out IntPtr hThread,
+        //    Enum.ACCESS_MASK DesiredAccess,
+        //    IntPtr ObjectAttributes,
+        //    IntPtr ProcessHandle,
+        //    IntPtr lpStartAddress,
+        //    IntPtr lpParameter,
+        //    bool CreateSuspended,
+        //    uint StackZeroBits,
+        //    uint SizeOfStackCommit,
+        //    uint SizeOfStackReserve,
+        //    IntPtr lpBytesBuffer
+        //    );
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate uint NtOpenProcess(
+                ref IntPtr ProcessHandle,
+                uint DesiredAccess,
+                ref OBJECT_ATTRIBUTES ObjectAttributes,
+                ref CLIENT_ID processId);
+
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate Enum.NTSTATUS NtWaitForSingleObject(IntPtr Object, bool Alertable, uint Timeout);
+
+        #endregion Direct Syscall
     }
 
 

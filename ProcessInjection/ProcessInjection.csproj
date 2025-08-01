@@ -90,19 +90,20 @@
     <Compile Include="DInvoke\Injection\DLLInjection.cs" />
     <Compile Include="DInvoke\Injection\DynamicPPIDSpoofing.cs" />
     <Compile Include="DInvoke\Injection\DynamicProcessHollowing.cs" />
-    <Compile Include="DInvoke\Native\Constants.cs" />
-    <Compile Include="DInvoke\Native\Delegates.cs" />
-    <Compile Include="DInvoke\Native\DynamicInvoke.cs" />
-    <Compile Include="DInvoke\Native\Enum.cs" />
-    <Compile Include="DInvoke\Native\Native.cs" />
-    <Compile Include="DInvoke\Native\PE.cs" />
-    <Compile Include="DInvoke\Native\Structs.cs" />
-    <Compile Include="DInvoke\Native\Utils.cs" />
-    <Compile Include="PInvoke\Native\Constants.cs" />
-    <Compile Include="PInvoke\Native\Enums.cs" />
+    <Compile Include="IndirectSyscalls\IndirectSyscalls.cs" />
+    <Compile Include="IndirectSyscalls\Injection\CreateRemoteThread.cs" />
+    <Compile Include="Native\Constants.cs" />
+    <Compile Include="Native\Delegates.cs" />
+    <Compile Include="DInvoke\DynamicInvoke.cs" />
+    <Compile Include="Native\Enum.cs" />
+    <Compile Include="DInvoke\Native.cs" />
+    <Compile Include="Native\PE.cs" />
+    <Compile Include="Native\Structs.cs" />
+    <Compile Include="DirectSyscalls\Injection\CreateRemoteThread.cs" />
+    <Compile Include="DirectSyscalls\Syscalls.cs" />
+    <Compile Include="PInvoke\Injection\KernelCallBackTable.cs" />
     <Compile Include="PInvoke\Injection\PPIDSpoofing.cs" />
-    <Compile Include="PInvoke\Native\Structs.cs" />
-    <Compile Include="PInvoke\Native\Win32API.cs" />
+    <Compile Include="PInvoke\Win32API.cs" />
     <Compile Include="PInvoke\Injection\APCQueue.cs" />
     <Compile Include="PInvoke\Injection\CreateRemoteThread.cs" />
     <Compile Include="PInvoke\Injection\DLLInjection.cs" />
@@ -127,5 +128,6 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

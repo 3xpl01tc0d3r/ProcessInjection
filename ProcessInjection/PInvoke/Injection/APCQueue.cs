@@ -1,6 +1,6 @@
 ﻿using System;
 using static ProcessInjection.Native.Win32API;
-using static ProcessInjection.Native.Enums;
+using static ProcessInjection.Native.Enum;
 using static ProcessInjection.Native.Structs;
 using static ProcessInjection.Utils.Utils;
 using System.Runtime.InteropServices;

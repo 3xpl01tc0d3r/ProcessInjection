@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ProcessInjection.Native;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,8 +7,11 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using static ProcessInjection.Native.Enum;
+using static ProcessInjection.Utils.Utils;
+using static ProcessInjection.DInvoke.Native;
 
-namespace ProcessInjection.DInvoke.Native
+namespace ProcessInjection.DInvoke
 {
     public class DynamicInvoke
     {
@@ -62,12 +66,12 @@ namespace ProcessInjection.DInvoke.Native
                     var ptr = (IntPtr)buffer;
                     var size = new IntPtr(asmStub.Length);
 
-                    var oldProtect = Native.NtProtectVirtualMemory(new IntPtr(-1), ref ptr,
+                    var oldProtect = NtProtectVirtualMemory(new IntPtr(-1), ref ptr,
                         ref size, Constants.PAGE_EXECUTE_READWRITE);
 
                     var result = DynamicFunctionInvoke(ptr, functionDelegateType, ref parameters);
 
-                    Native.NtProtectVirtualMemory(new IntPtr(-1), ref ptr,
+                    NtProtectVirtualMemory(new IntPtr(-1), ref ptr,
                         ref size, oldProtect);
 
                     return result;
@@ -89,7 +93,7 @@ namespace ProcessInjection.DInvoke.Native
             var hModule = IntPtr.Zero;
             var callResult = Native.LdrLoadDll(IntPtr.Zero, 0, ref uModuleName, ref hModule);
 
-            if (callResult != Enum.NTSTATUS.Success || hModule == IntPtr.Zero)
+            if (callResult != NTSTATUS.Success || hModule == IntPtr.Zero)
                 return IntPtr.Zero;
 
             return hModule;
@@ -215,7 +219,7 @@ namespace ProcessInjection.DInvoke.Native
 
             foreach (ProcessModule module in process.Modules)
             {
-                var hashedName = Utils.GetApiHash(module.ModuleName, key);
+                var hashedName = GetApiHash(module.ModuleName, key);
 
                 if (hashedName.Equals(hashedDllName))
                     return module.BaseAddress;
@@ -557,7 +561,7 @@ namespace ProcessInjection.DInvoke.Native
                 {
                     var functionName = Marshal.PtrToStringAnsi((IntPtr)(moduleBase.ToInt64() + Marshal.ReadInt32((IntPtr)(moduleBase.ToInt64() + namesRva + i * 4))));
                     if (string.IsNullOrWhiteSpace(functionName)) continue;
-                    if (!Utils.GetApiHash(functionName, key).Equals(functionHash, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!GetApiHash(functionName, key).Equals(functionHash, StringComparison.OrdinalIgnoreCase)) continue;
 
                     var functionOrdinal = Marshal.ReadInt16((IntPtr)(moduleBase.ToInt64() + ordinalsRva + i * 2)) + ordinalBase;
 
@@ -814,7 +818,7 @@ namespace ProcessInjection.DInvoke.Native
 
             Native.NtCreateThreadEx(
                 ref hRemoteThread,
-                Enum.ACCESS_MASK.STANDARD_RIGHTS_ALL,
+                ACCESS_MASK.STANDARD_RIGHTS_ALL,
                 IntPtr.Zero, (IntPtr)(-1),
                 lpStartAddress, IntPtr.Zero,
                 false, 0, 0, 0, IntPtr.Zero

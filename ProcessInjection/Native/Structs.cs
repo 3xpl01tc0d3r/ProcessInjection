@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ProcessInjection.DInvoke.Native
+namespace ProcessInjection.Native
 {
     public static class Structs
     {
@@ -162,14 +162,48 @@ namespace ProcessInjection.DInvoke.Native
             public ushort wProcRevision;
         }
 
-
-        // Parent PID Spoofing flags - https://www.pinvoke.net/default.aspx/kernel32.sethandleinformation
-        public enum HANDLE_FLAGS : uint
+        // https://github.com/ricardojoserf/GetModuleHandleRemote/blob/279f04f94a1d2b4343ba134194ee6af5afd28bab/GetModuleHandleRemote/Program.cs#L15C116-L15C128
+        [StructLayout(LayoutKind.Sequential)]
+        public struct CLIENT_ID
         {
-            None = 0,
-            INHERIT = 1,
-            PROTECT_FROM_CLOSE = 2
+            public IntPtr UniqueProcess;
+            public IntPtr UniqueThread;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct COPYDATASTRUCT
+        {
+            public IntPtr dwData;
+            public uint cbData;
+            public IntPtr lpData;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PEB
+        {
+            public byte InheritedAddressSpace;
+            public byte ReadImageFileExecOptions;
+            public byte BeingDebugged;
+            public byte BitField;
+            public IntPtr Mutant;
+            public IntPtr ImageBaseAddress;
+            public IntPtr Ldr;
+            public IntPtr ProcessParameters;
+            public IntPtr SubSystemData;
+            public IntPtr ProcessHeap;
+            public IntPtr FastPebLock;
+            public IntPtr AtlThunkSListPtr;
+            public IntPtr IFEOKey;
+            public uint CrossProcessFlags;
+            public IntPtr KernelCallbackTable; // Offset 0x58 for x64
+                                               // Other fields omitted
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct KERNELCALLBACKTABLE
+        {
+            public IntPtr __fnCOPYDATA;
+            // Other fields omitted (undocumented structure)
+        }
     }
 }

@@ -3,13 +3,14 @@
 ----
 
 The program is designed to perform process injection.
-Currently the tool supports 4 process injection techniques.
+Currently the tool supports 5 process injection techniques.
 
 ```
 1) Vanilla Process Injection
 2) DLL Injection
 3) Process Hollowing
 4) APC Queue
+5) KernelCallbackTable Injection
 ```
 
 The tool accepts shellcode in 4 formats.
@@ -21,11 +22,13 @@ The tool accepts shellcode in 4 formats.
 4) raw
 ```
 
-The tool supports 2 methods to perform process injection.
+The tool supports 4 methods to perform process injection.
 
 ```
 1) P/Invoke
 2) D/Invoke
+3) Direct Syscalls
+4) Indirect Syscalls
 ```
 
 Supports 3 detection evading techniques.
@@ -61,9 +64,12 @@ Usage           Description
                 2 = DLL Injection
                 3 = Process Hollowing
                 4 = APC Queue Injection
+		5 = KernelCallbackTable Injection
 /m              Specify the method to be used
                 p = P/Invoke (Default)
                 d = D/Invoke
+		ds = Direct Syscalls
+		ids = Indirect Syscalls
 /f              Specify the format of the shellcode.
                 base64
                 hex
